@@ -86,9 +86,9 @@ export function createBen({ createHumanRig }) {
     materials.shirtBlack, [0, 0.08, 0], [1, 1, 0.76], "BenShirtTorso");
   shirtBody.geometry.computeVertexNormals();
   add(spine, new THREE.BoxGeometry(0.105, 0.76, 0.016), materials.green,
-    [0, 0.105, 0.158], null, "GreenCenterStripe");
+    [0, 0.105, 0.211], null, "GreenCenterStripe");
   add(spine, new THREE.BoxGeometry(0.12, 0.17, 0.02), materials.green,
-    [0, 0.415, 0.145], null, "GreenCollar");
+    [0, 0.415, 0.195], null, "GreenCollar");
   // Green sleeve seams follow the shoulder slope.
   for (const side of ["left", "right"]) {
     const s = side === "left" ? -1 : 1;
@@ -116,7 +116,7 @@ export function createBen({ createHumanRig }) {
     new THREE.PlaneGeometry(0.30, 0.19),
     new THREE.MeshBasicMaterial({ map: numberTexture, transparent: true, side: THREE.DoubleSide })
   );
-  number.position.set(0, 0.09, 0.198);
+  number.position.set(0, 0.09, 0.225);
   spine.add(number);
 
   // Neck and head.
