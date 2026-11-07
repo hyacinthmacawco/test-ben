@@ -214,14 +214,15 @@ export function createBen({ createHumanRig }) {
   // silhouette. The lower legs widen toward the hems to match Ben's flared jeans.
   const hip = joints.hip;
   const pelvisProfile = [
-    new THREE.Vector2(0.17, -0.29),
-    new THREE.Vector2(0.205, -0.24),
-    new THREE.Vector2(0.235, -0.12),
-    new THREE.Vector2(0.245, 0.015),
-    new THREE.Vector2(0.205, 0.12)
+    new THREE.Vector2(0.145, -0.31),
+    new THREE.Vector2(0.165, -0.27),
+    new THREE.Vector2(0.185, -0.16),
+    new THREE.Vector2(0.195, -0.04),
+    new THREE.Vector2(0.185, 0.08),
+    new THREE.Vector2(0.155, 0.15)
   ];
-  add(hip, new THREE.LatheGeometry(pelvisProfile, 32), materials.pants,
-    [0, -0.09, 0], [1, 1, 0.76], "BenWaist");
+  add(hip, new THREE.LatheGeometry(pelvisProfile, 40), materials.pants,
+    [0, -0.015, 0], [1, 1, 0.82], "BenWaist");
 
   const trouserSegment = (parent, topRadius, hemRadius, name) => {
     const length = 0.43;
