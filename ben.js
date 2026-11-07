@@ -99,14 +99,18 @@ export function createBen({ createHumanRig }) {
   // Small green collar area near the top of the torso UV.
   shirtCtx.fillRect(0, 0, 512, 48);
   shirtCtx.fillStyle = "#168b4c";
-  shirtCtx.font = "900 104px Arial";
+  shirtCtx.font = "900 112px Arial";
   shirtCtx.textAlign = "center";
   shirtCtx.textBaseline = "middle";
   shirtCtx.lineJoin = "round";
   shirtCtx.strokeStyle = "#f1f0e7";
-  shirtCtx.lineWidth = 14;
-  shirtCtx.strokeText("10", 256, 245);
-  shirtCtx.fillText("10", 256, 245);
+  shirtCtx.lineWidth = 13;
+  // Front-facing UV seam is split between the left and right canvas edges.
+  // Drawing at both edges joins the two halves into one front-facing "10".
+  for (const seamX of [0, 512]) {
+    shirtCtx.strokeText("10", seamX, 245);
+    shirtCtx.fillText("10", seamX, 245);
+  }
   const shirtTexture = new THREE.CanvasTexture(shirtCanvas);
   shirtTexture.colorSpace = THREE.SRGBColorSpace;
   shirtTexture.flipY = true;
@@ -131,43 +135,47 @@ export function createBen({ createHumanRig }) {
   const faceCtx = faceCanvas.getContext("2d");
   faceCtx.clearRect(0, 0, 512, 512);
 
-  // Eye whites, green irises, pupils and small highlights.
-  for (const x of [190, 322]) {
+  // Larger almond-shaped eyes with white sclera and green irises only.
+  // Ben's design has no black pupils; the green iris remains the focal point.
+  for (const x of [174, 338]) {
     faceCtx.fillStyle = "#f4eee3";
     faceCtx.beginPath();
-    faceCtx.ellipse(x, 224, 43, 27, 0, 0, Math.PI * 2);
+    faceCtx.moveTo(x - 57, 226);
+    faceCtx.quadraticCurveTo(x - 43, 184, x, 190);
+    faceCtx.quadraticCurveTo(x + 43, 184, x + 57, 226);
+    faceCtx.quadraticCurveTo(x + 34, 260, x, 258);
+    faceCtx.quadraticCurveTo(x - 34, 260, x - 57, 226);
+    faceCtx.closePath();
     faceCtx.fill();
+
     faceCtx.fillStyle = "#159b50";
     faceCtx.beginPath();
-    faceCtx.ellipse(x + 3, 224, 19, 22, 0, 0, Math.PI * 2);
+    faceCtx.ellipse(x + 2, 225, 25, 31, 0, 0, Math.PI * 2);
     faceCtx.fill();
-    faceCtx.fillStyle = "#101410";
-    faceCtx.beginPath();
-    faceCtx.ellipse(x + 4, 224, 9, 17, 0, 0, Math.PI * 2);
-    faceCtx.fill();
-    faceCtx.fillStyle = "#ffffff";
-    faceCtx.beginPath();
-    faceCtx.arc(x - 3, 215, 6, 0, Math.PI * 2);
-    faceCtx.fill();
+    // A restrained darker green rim gives the iris definition without a pupil.
+    faceCtx.strokeStyle = "#08763b";
+    faceCtx.lineWidth = 4;
+    faceCtx.stroke();
   }
 
-  // Expressive brows, tapered with rounded caps.
+  // Broader, gently angled brows with proportions closer to the reference.
   faceCtx.strokeStyle = "#38231d";
-  faceCtx.lineWidth = 17;
+  faceCtx.lineWidth = 20;
   faceCtx.lineCap = "round";
   faceCtx.beginPath();
-  faceCtx.moveTo(142, 174);
-  faceCtx.quadraticCurveTo(185, 153, 224, 168);
-  faceCtx.moveTo(288, 168);
-  faceCtx.quadraticCurveTo(330, 153, 370, 174);
+  faceCtx.moveTo(111, 164);
+  faceCtx.quadraticCurveTo(164, 140, 218, 160);
+  faceCtx.moveTo(294, 160);
+  faceCtx.quadraticCurveTo(348, 140, 401, 164);
   faceCtx.stroke();
 
-  // A simple curved smile.
+  // Wider, shallow smile; keep the line subtle rather than cartoonishly thick.
   faceCtx.strokeStyle = "#241914";
-  faceCtx.lineWidth = 8;
+  faceCtx.lineWidth = 7;
+  faceCtx.lineCap = "round";
   faceCtx.beginPath();
-  faceCtx.moveTo(174, 344);
-  faceCtx.quadraticCurveTo(256, 392, 338, 344);
+  faceCtx.moveTo(151, 350);
+  faceCtx.quadraticCurveTo(256, 392, 361, 350);
   faceCtx.stroke();
 
   const faceTexture = new THREE.CanvasTexture(faceCanvas);
