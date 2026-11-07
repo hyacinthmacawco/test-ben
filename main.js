@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 /**
- * Build an articulated humanoid pivot rig.
+ * Build an articulated humanoid pivot rig with a procedural walk cycle.
  *
  * Main joints: hip, neck, two shoulders, two elbows, and two knees.
  * The clavicle bar sits directly below the neck and connects both shoulders.
@@ -12,7 +12,9 @@ export function createHumanRig(options = {}) {
     boneColor = 0x8bb8e8,
     jointColor = 0xf0bd72,
     boneRadius = 0.045,
-    jointRadius = 0.065
+    jointRadius = 0.065,
+    walkSpeed = 1.8,
+    walkAmplitude = 1
   } = options;
 
   const root = new THREE.Group();
@@ -32,13 +34,10 @@ export function createHumanRig(options = {}) {
     return bone;
   };
 
-  // Approximate adult human proportions, with the feet near y = 0.
-  // Pelvis/hip pivot is the root of the skeleton.
   const hip = makeBone("hip", null, [0, 0.98, 0]);
   const spine = makeBone("spine", hip, [0, 0.30, 0]);
 
-  // The shoulder bridge is a short horizontal clavicle line just below
-  // the neck. Both shoulder pivots branch from its ends.
+  // A clavicle/shoulder bridge directly below the neck.
   const shoulderBridge = makeBone("shoulderBridge", spine, [0, 0.43, 0], false);
   const neck = makeBone("neck", spine, [0, 0.51, 0]);
   const head = makeBone("head", neck, [0, 0.19, 0]);
@@ -48,11 +47,11 @@ export function createHumanRig(options = {}) {
     const sign = side === "left" ? -1 : 1;
     const shoulder = makeBone(side + "Shoulder", shoulderBridge, [sign * 0.22, 0, 0]);
     const elbow = makeBone(side + "Elbow", shoulder, [sign * 0.30, -0.015, 0]);
-    makeBone(side + "Wrist", elbow, [sign * 0.27, -0.005, 0]);
-    makeBone(side + "HandEnd", joints[side + "Wrist"], [sign * 0.12, 0, 0], false);
+    const wrist = makeBone(side + "Wrist", elbow, [sign * 0.27, -0.005, 0]);
+    makeBone(side + "HandEnd", wrist, [sign * 0.12, 0, 0], false);
   }
 
-  // Legs: upper leg 0.43, lower leg 0.43, foot/ankle extension 0.12.
+  // Legs: thigh 0.43, lower leg 0.43, ankle extension 0.12.
   for (const side of ["left", "right"]) {
     const sign = side === "left" ? -1 : 1;
     const thigh = makeBone(side + "Thigh", hip, [sign * 0.105, -0.06, 0]);
@@ -73,7 +72,6 @@ export function createHumanRig(options = {}) {
   const segmentGeometry = new THREE.CylinderGeometry(boneRadius * 0.82, boneRadius, 1, 12);
 
   for (const bone of bones) {
-    // The shoulder bridge is a structural clavicle, not an extra joint marker.
     if (bone.name !== "shoulderBridge" && bone.name !== "HandEnd") {
       const marker = new THREE.Mesh(jointGeometry, jointMaterial);
       marker.name = bone.name + "Marker";
@@ -109,15 +107,58 @@ export function createHumanRig(options = {}) {
     bones.map(bone => [bone, bone.rotation.clone()])
   );
 
-  return {
+  let walking = true;
+  let speed = walkSpeed;
+  let amplitude = walkAmplitude;
+
+  const rig = {
     group: root,
     skeleton,
     bones,
     joints,
+    get walking() { return walking; },
+    setWalking(enabled) {
+      walking = Boolean(enabled);
+      if (!walking) {
+        rig.resetPose();
+        root.position.y = 0;
+      }
+    },
+    setWalkSpeed(value) {
+      speed = Math.max(0, Number(value) || 0);
+    },
+    updateWalk(timeSeconds) {
+      if (!walking) return;
+
+      const cycle = timeSeconds * speed * Math.PI * 2;
+      const stride = 0.48 * amplitude;
+      const leftPhase = cycle;
+      const rightPhase = cycle + Math.PI;
+
+      // Legs swing opposite one another; knees flex during the recovery phase.
+      for (const [side, phase] of [["left", leftPhase], ["right", rightPhase]]) {
+        const swing = Math.sin(phase);
+        const recovery = Math.max(0, Math.cos(phase));
+        joints[side + "Thigh"].rotation.z = swing * stride;
+        joints[side + "Knee"].rotation.z = recovery * 0.62 * amplitude;
+      }
+
+      // Natural counter-swing: arms move opposite to their same-side legs.
+      for (const [side, phase] of [["left", leftPhase], ["right", rightPhase]]) {
+        joints[side + "Shoulder"].rotation.z = -Math.sin(phase) * 0.42 * amplitude;
+        joints[side + "Elbow"].rotation.z = -0.12 - Math.max(0, Math.cos(phase)) * 0.28 * amplitude;
+      }
+
+      // Subtle pelvis/torso movement gives the cycle weight without exaggeration.
+      joints.hip.rotation.z = Math.sin(cycle * 2) * 0.025 * amplitude;
+      joints.spine.rotation.z = -Math.sin(cycle * 2) * 0.018 * amplitude;
+      root.position.y = Math.abs(Math.sin(cycle * 2)) * 0.035 * amplitude;
+    },
     resetPose() {
       for (const [bone, rotation] of initialRotations) {
         bone.rotation.copy(rotation);
       }
+      root.position.y = 0;
     },
     setPose(pose = {}) {
       for (const [name, rotation] of Object.entries(pose)) {
@@ -129,6 +170,8 @@ export function createHumanRig(options = {}) {
       }
     }
   };
+
+  return rig;
 }
 
 // Demo scene
@@ -168,6 +211,8 @@ scene.add(new THREE.GridHelper(12, 24, 0x53657b, 0x354354));
 export const humanRig = createHumanRig();
 scene.add(humanRig.group);
 
+const clock = new THREE.Clock();
+
 function resize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -176,6 +221,8 @@ function resize() {
 window.addEventListener("resize", resize);
 
 renderer.setAnimationLoop(() => {
+  const elapsed = clock.getElapsedTime();
+  humanRig.updateWalk(elapsed);
   controls.update();
   renderer.render(scene, camera);
 });
