@@ -252,8 +252,18 @@ floor.receiveShadow = true;
 scene.add(floor);
 scene.add(new THREE.GridHelper(12, 24, 0x53657b, 0x354354));
 
-export const humanRig = createHumanRig();
-scene.add(humanRig.group);
+// Load Ben's character mesh and attach it to the articulated rig.
+let humanRig = null;
+let benCharacter = null;
+import("./ben.js").then(({ createBen }) => {
+  benCharacter = createBen({ createHumanRig });
+  humanRig = benCharacter.rig;
+  scene.add(benCharacter.group);
+  window.ben = benCharacter;
+  // The Ben character module exposes window.ben and window.humanRig after loading.
+}).catch(error => {
+  console.error("Could not load Ben character:", error);
+});
 
 const clock = new THREE.Clock();
 
@@ -266,7 +276,7 @@ window.addEventListener("resize", resize);
 
 renderer.setAnimationLoop(() => {
   const elapsed = clock.getElapsedTime();
-  humanRig.updateWalk(elapsed);
+  if (humanRig) humanRig.updateWalk(elapsed);
   controls.update();
   renderer.render(scene, camera);
 });
