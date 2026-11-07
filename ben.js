@@ -110,31 +110,73 @@ export function createBen({ createHumanRig }) {
   sphere(joints.neck, materials.skin, [0, 0.055, 0], [0.105, 0.22, 0.105], "BenNeck");
   const head = joints.head;
   sphere(head, materials.skin, [0, 0.075, 0.015], [0.225, 0.285, 0.19], "BenHead");
-  sphere(head, materials.skinLight, [0, -0.035, 0.155], [0.145, 0.105, 0.055], "BenMuzzle");
+  // Keep the lower face subtle; a large protruding muzzle made the head
+  // read like a snout instead of Ben's flatter cartoon face.
+  sphere(head, materials.skinLight, [0, -0.045, 0.168], [0.125, 0.068, 0.035], "BenMuzzle");
 
-  // Ears, eyes, irises, pupils and brows face +Z.
+  // Face details face +Z. Keep the eyes forward of the face surface and
+  // below the fringe so they remain clearly visible from the front.
   for (const side of ["left", "right"]) {
     const s = side === "left" ? -1 : 1;
     sphere(head, materials.skin, [s * 0.218, 0.055, 0.005], [0.052, 0.085, 0.045], side + "Ear");
-    sphere(head, materials.eyeWhite, [s * 0.087, 0.105, 0.176], [0.067, 0.045, 0.025], side + "EyeWhite");
-    sphere(head, materials.iris, [s * 0.082, 0.105, 0.198], [0.031, 0.033, 0.014], side + "Iris");
-    sphere(head, materials.pupil, [s * 0.08, 0.105, 0.209], [0.014, 0.024, 0.009], side + "Pupil");
-    const brow = capsule(head, materials.hair, [s * 0.15, 0.17, 0.18], [s * 0.035, 0.19, 0.19], 0.022, side + "Eyebrow");
-    brow.rotation.z += s * -0.10;
-  }
-  // Nose and a subtle curved-mouth approximation.
-  sphere(head, materials.skinLight, [0, 0.035, 0.205], [0.027, 0.055, 0.035], "Nose");
-  capsule(head, materials.outline, [-0.09, -0.075, 0.192], [0.09, -0.075, 0.192], 0.008, "Mouth");
 
-  // Hair cap and swept fringe. Individual locks are fixed to the head joint.
-  sphere(head, materials.hair, [0, 0.255, -0.005], [0.235, 0.13, 0.205], "HairCap");
-  sphere(head, materials.hairLight, [0, 0.205, 0.095], [0.205, 0.09, 0.13], "HairFront");
-  for (let i = 0; i < 5; i++) {
-    const x = -0.17 + i * 0.085;
-    const lock = sphere(head, materials.hair, [x, 0.145 - Math.abs(x) * 0.13, 0.17], [0.075, 0.115, 0.055], "HairFringe" + i);
-    lock.rotation.z = -0.28 + i * 0.13;
+    // Slightly wider, taller eye shapes give Ben a readable animated look.
+    sphere(head, materials.eyeWhite, [s * 0.087, 0.105, 0.191], [0.071, 0.047, 0.027], side + "EyeWhite");
+    sphere(head, materials.iris, [s * 0.080, 0.103, 0.215], [0.034, 0.036, 0.014], side + "Iris");
+    sphere(head, materials.pupil, [s * 0.078, 0.103, 0.226], [0.016, 0.026, 0.009], side + "Pupil");
+    sphere(head, materials.eyeWhite, [s * 0.068, 0.119, 0.233], [0.009, 0.010, 0.006], side + "EyeHighlight");
+
+    const brow = capsule(head, materials.hair, [s * 0.15, 0.176, 0.195], [s * 0.035, 0.188, 0.207], 0.018, side + "Eyebrow");
+    brow.rotation.z += s * -0.08;
   }
-  // Back hair silhouette.
+
+  // Small, integrated nose and a curved smile rather than the previous
+  // protruding nose + straight line, which looked like a muzzle.
+  sphere(head, materials.skinLight, [0, 0.025, 0.218], [0.022, 0.038, 0.027], "Nose");
+  const smileCurve = new THREE.CubicBezierCurve3(
+    new THREE.Vector3(-0.095, -0.075, 0.196),
+    new THREE.Vector3(-0.035, -0.112, 0.218),
+    new THREE.Vector3(0.035, -0.112, 0.218),
+    new THREE.Vector3(0.095, -0.075, 0.196)
+  );
+  const smile = new THREE.Mesh(
+    new THREE.TubeGeometry(smileCurve, 20, 0.006, 7, false), materials.outline
+  );
+  smile.name = "BenSmile";
+  head.add(smile);
+
+  // Hair cap sits higher, exposing the forehead and eyes. A single sculpted
+  // zig-zag fringe replaces the row of oversized round locks that obscured
+  // the entire upper half of the face.
+  sphere(head, materials.hair, [0, 0.285, -0.005], [0.235, 0.105, 0.195], "HairCap");
+
+  const fringeShape = new THREE.Shape();
+  fringeShape.moveTo(-0.205, 0.255);
+  fringeShape.quadraticCurveTo(-0.13, 0.225, -0.105, 0.185);
+  fringeShape.lineTo(-0.055, 0.225);
+  fringeShape.lineTo(-0.018, 0.178);
+  fringeShape.lineTo(0.025, 0.232);
+  fringeShape.lineTo(0.075, 0.183);
+  fringeShape.lineTo(0.12, 0.228);
+  fringeShape.quadraticCurveTo(0.17, 0.238, 0.205, 0.265);
+  fringeShape.lineTo(0.19, 0.305);
+  fringeShape.lineTo(-0.19, 0.305);
+  fringeShape.closePath();
+  const fringeGeometry = new THREE.ExtrudeGeometry(fringeShape, {
+    depth: 0.035, bevelEnabled: true, bevelSegments: 2,
+    steps: 1, bevelSize: 0.006, bevelThickness: 0.006
+  });
+  const fringe = new THREE.Mesh(fringeGeometry, materials.hair);
+  fringe.position.z = 0.155;
+  fringe.name = "SweptHairFringe";
+  fringe.castShadow = true;
+  head.add(fringe);
+
+  // Side locks and back hair complete the silhouette without covering the eyes.
+  const leftLock = sphere(head, materials.hair, [-0.19, 0.105, 0.045], [0.065, 0.13, 0.12], "LeftSideLock");
+  leftLock.rotation.z = -0.18;
+  const rightLock = sphere(head, materials.hair, [0.19, 0.105, 0.045], [0.065, 0.13, 0.12], "RightSideLock");
+  rightLock.rotation.z = 0.18;
   sphere(head, materials.hair, [0, -0.105, -0.07], [0.19, 0.10, 0.15], "BackHair");
 
   // Arms: sleeves, exposed upper arms, forearms and palms are attached to
