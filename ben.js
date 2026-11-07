@@ -30,7 +30,6 @@ export function createBen({ createHumanRig }) {
     sole: new THREE.MeshStandardMaterial({ color: 0x252a28, roughness: 0.95 }),
     eyeWhite: new THREE.MeshStandardMaterial({ color: 0xf4eee3, roughness: 0.65 }),
     iris: new THREE.MeshStandardMaterial({ color: 0x159b50, roughness: 0.55 }),
-    pupil: new THREE.MeshStandardMaterial({ color: 0x101410, roughness: 0.5 }),
     outline: new THREE.MeshStandardMaterial({ color: 0x241914, roughness: 1 })
   };
 
@@ -127,8 +126,14 @@ export function createBen({ createHumanRig }) {
       const thigh = joints[side + "Thigh"];
       const knee = joints[side + "Knee"];
       const ankle = joints[side + "Ankle"];
-      addCapsule(worldPoint(thigh), worldPoint(knee), 0.125, "pants");
-      addCapsule(worldPoint(knee), worldPoint(ankle), 0.112, "pants");
+      const thighEnd = new THREE.Vector3(...worldPoint(knee));
+      const anklePoint = new THREE.Vector3(...worldPoint(ankle));
+      // Narrow each trouser leg so the two legs remain visibly distinct.
+      addCapsule(worldPoint(thigh), thighEnd.toArray(), 0.092, "pants");
+      // Stop the trouser hem above the shoe and expose a short skin ankle.
+      const hemPoint = anklePoint.clone().add(new THREE.Vector3(0, 0.13, 0));
+      addCapsule(thighEnd.toArray(), hemPoint.toArray(), 0.082, "pants");
+      addCapsule(hemPoint.toArray(), anklePoint.toArray(), 0.052, "skin");
     }
 
     const smoothMin = (a, b, k) => {
@@ -231,7 +236,7 @@ export function createBen({ createHumanRig }) {
       else color = new THREE.Color(0xd99a82);
 
       // Paint the central green shirt stripe directly into vertex colors.
-      if (region === "shirt" && p.z > 0.105 && Math.abs(p.x) < 0.052 &&
+      if (region === "shirt" && p.z > 0.105 && Math.abs(p.x) < 0.062 &&
           p.y > 1.08 && p.y < 1.78) color.setHex(0x079b4c);
       positions.push(p.x, p.y, p.z);
       colors.push(color.r, color.g, color.b);
@@ -305,10 +310,26 @@ export function createBen({ createHumanRig }) {
     geometry.setAttribute("skinIndex", new THREE.Uint16BufferAttribute(skinIndices, 4));
     geometry.setAttribute("skinWeight", new THREE.Float32BufferAttribute(skinWeights, 4));
     geometry.setIndex(indices);
-    geometry.computeVertexNormals();
+    // Derive smooth normals from the continuous distance field rather than
+    // averaging triangle faces. This avoids the faceted, bark-like shading
+    // caused by tetrahedron winding differences.
+    const normalValues = [];
+    const normalStep = 0.008;
+    for (let i = 0; i < positions.length; i += 3) {
+      const p = new THREE.Vector3(positions[i], positions[i + 1], positions[i + 2]);
+      const nx = sample(p.clone().add(new THREE.Vector3(normalStep, 0, 0))).distance -
+        sample(p.clone().sub(new THREE.Vector3(normalStep, 0, 0))).distance;
+      const ny = sample(p.clone().add(new THREE.Vector3(0, normalStep, 0))).distance -
+        sample(p.clone().sub(new THREE.Vector3(0, normalStep, 0))).distance;
+      const nz = sample(p.clone().add(new THREE.Vector3(0, 0, normalStep))).distance -
+        sample(p.clone().sub(new THREE.Vector3(0, 0, normalStep))).distance;
+      const normal = new THREE.Vector3(nx, ny, nz).normalize();
+      normalValues.push(normal.x, normal.y, normal.z);
+    }
+    geometry.setAttribute("normal", new THREE.Float32BufferAttribute(normalValues, 3));
     const material = new THREE.MeshStandardMaterial({
-      vertexColors: true, roughness: 0.88, metalness: 0,
-      side: THREE.DoubleSide
+      vertexColors: true, roughness: 0.96, metalness: 0,
+      side: THREE.DoubleSide, flatShading: false
     });
     const body = new THREE.SkinnedMesh(geometry, material);
     body.name = "BenContinuousSkinnedBody";
@@ -322,6 +343,37 @@ export function createBen({ createHumanRig }) {
   };
 
   const continuousBody = buildContinuousBody();
+
+  // The "10" is a flat shirt print, not a floating 3D object.
+  const numberCanvas = document.createElement("canvas");
+  numberCanvas.width = 256;
+  numberCanvas.height = 192;
+  const numberContext = numberCanvas.getContext("2d");
+  numberContext.clearRect(0, 0, 256, 192);
+  numberContext.textAlign = "center";
+  numberContext.textBaseline = "middle";
+  numberContext.font = "900 132px Arial, sans-serif";
+  numberContext.lineJoin = "round";
+  numberContext.lineWidth = 18;
+  numberContext.strokeStyle = "#123d28";
+  numberContext.strokeText("10", 128, 98);
+  numberContext.lineWidth = 8;
+  numberContext.strokeStyle = "#ffffff";
+  numberContext.strokeText("10", 128, 98);
+  numberContext.fillStyle = "#159b50";
+  numberContext.fillText("10", 128, 98);
+  const numberTexture = new THREE.CanvasTexture(numberCanvas);
+  numberTexture.colorSpace = THREE.SRGBColorSpace;
+  const numberMaterial = new THREE.MeshBasicMaterial({
+    map: numberTexture, transparent: true, depthWrite: false,
+    side: THREE.DoubleSide
+  });
+  const numberPrint = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.19, 0.145), numberMaterial
+  );
+  numberPrint.name = "Ben10ShirtPrint";
+  numberPrint.position.set(0, 1.39, 0.198);
+  group.add(numberPrint);
 
   // Neck and head.
   const head = joints.head;
