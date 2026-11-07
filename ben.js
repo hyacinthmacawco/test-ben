@@ -85,78 +85,138 @@ export function createBen({ createHumanRig }) {
   const shirtBody = add(spine, new THREE.LatheGeometry(shirtProfile, 32),
     materials.shirtBlack, [0, 0.08, 0], [1, 1, 0.76], "BenShirtTorso");
   shirtBody.geometry.computeVertexNormals();
-  add(spine, new THREE.BoxGeometry(0.105, 0.76, 0.016), materials.green,
-    [0, 0.105, 0.211], null, "GreenCenterStripe");
-  add(spine, new THREE.BoxGeometry(0.12, 0.17, 0.02), materials.green,
-    [0, 0.415, 0.195], null, "GreenCollar");
+  // Shirt graphics are painted into the torso's UV texture, not separate meshes.
+  const shirtCanvas = document.createElement("canvas");
+  shirtCanvas.width = 512;
+  shirtCanvas.height = 512;
+  const shirtCtx = shirtCanvas.getContext("2d");
+  shirtCtx.fillStyle = "#111714";
+  shirtCtx.fillRect(0, 0, 512, 512);
+  // LatheGeometry's front-facing seam is at both U edges (0 and 1).
+  shirtCtx.fillStyle = "#079b4c";
+  shirtCtx.fillRect(0, 0, 22, 512);
+  shirtCtx.fillRect(490, 0, 22, 512);
+  // Small green collar area near the top of the torso UV.
+  shirtCtx.fillRect(0, 0, 512, 48);
+  shirtCtx.fillStyle = "#168b4c";
+  shirtCtx.font = "900 104px Arial";
+  shirtCtx.textAlign = "center";
+  shirtCtx.textBaseline = "middle";
+  shirtCtx.lineJoin = "round";
+  shirtCtx.strokeStyle = "#f1f0e7";
+  shirtCtx.lineWidth = 14;
+  shirtCtx.strokeText("10", 256, 245);
+  shirtCtx.fillText("10", 256, 245);
+  const shirtTexture = new THREE.CanvasTexture(shirtCanvas);
+  shirtTexture.colorSpace = THREE.SRGBColorSpace;
+  shirtTexture.flipY = true;
+  materials.shirtBlack.map = shirtTexture;
+  materials.shirtBlack.color.set(0xffffff);
+  materials.shirtBlack.needsUpdate = true;
   // Green sleeve seams follow the shoulder slope.
   for (const side of ["left", "right"]) {
     const s = side === "left" ? -1 : 1;
     capsule(spine, materials.greenDark, [s * 0.18, 0.39, 0.005], [s * 0.285, 0.27, 0.008], 0.038, side + "ShoulderAccent");
   }
 
-  // A small canvas texture keeps the iconic 10 readable from the front.
-  const numberCanvas = document.createElement("canvas");
-  numberCanvas.width = 256;
-  numberCanvas.height = 160;
-  const ctx = numberCanvas.getContext("2d");
-  ctx.clearRect(0, 0, 256, 160);
-  ctx.font = "900 112px Arial";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.lineJoin = "round";
-  ctx.strokeStyle = "#f1f0e7";
-  ctx.lineWidth = 15;
-  ctx.strokeText("10", 128, 82);
-  ctx.fillStyle = "#168b4c";
-  ctx.fillText("10", 128, 82);
-  const numberTexture = new THREE.CanvasTexture(numberCanvas);
-  numberTexture.colorSpace = THREE.SRGBColorSpace;
-  const number = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.30, 0.19),
-    new THREE.MeshBasicMaterial({ map: numberTexture, transparent: true, side: THREE.DoubleSide })
-  );
-  number.position.set(0, 0.09, 0.225);
-  spine.add(number);
-
   // Neck and head.
   sphere(joints.neck, materials.skin, [0, 0.055, 0], [0.105, 0.22, 0.105], "BenNeck");
   const head = joints.head;
   sphere(head, materials.skin, [0, 0.075, 0.015], [0.225, 0.285, 0.19], "BenHead");
-  // Keep the lower face subtle; a large protruding muzzle made the head
-  // read like a snout instead of Ben's flatter cartoon face.
-  sphere(head, materials.skinLight, [0, -0.045, 0.168], [0.125, 0.068, 0.035], "BenMuzzle");
+  // A single curved face decal carries the eyes, brows and mouth as pixels.
+  // Its vertices follow the ellipsoid head surface, avoiding floating feature meshes.
+  const faceCanvas = document.createElement("canvas");
+  faceCanvas.width = 512;
+  faceCanvas.height = 512;
+  const faceCtx = faceCanvas.getContext("2d");
+  faceCtx.clearRect(0, 0, 512, 512);
 
-  // Face details face +Z. Keep the eyes forward of the face surface and
-  // below the fringe so they remain clearly visible from the front.
+  // Eye whites, green irises, pupils and small highlights.
+  for (const x of [190, 322]) {
+    faceCtx.fillStyle = "#f4eee3";
+    faceCtx.beginPath();
+    faceCtx.ellipse(x, 224, 43, 27, 0, 0, Math.PI * 2);
+    faceCtx.fill();
+    faceCtx.fillStyle = "#159b50";
+    faceCtx.beginPath();
+    faceCtx.ellipse(x + 3, 224, 19, 22, 0, 0, Math.PI * 2);
+    faceCtx.fill();
+    faceCtx.fillStyle = "#101410";
+    faceCtx.beginPath();
+    faceCtx.ellipse(x + 4, 224, 9, 17, 0, 0, Math.PI * 2);
+    faceCtx.fill();
+    faceCtx.fillStyle = "#ffffff";
+    faceCtx.beginPath();
+    faceCtx.arc(x - 3, 215, 6, 0, Math.PI * 2);
+    faceCtx.fill();
+  }
+
+  // Expressive brows, tapered with rounded caps.
+  faceCtx.strokeStyle = "#38231d";
+  faceCtx.lineWidth = 17;
+  faceCtx.lineCap = "round";
+  faceCtx.beginPath();
+  faceCtx.moveTo(142, 174);
+  faceCtx.quadraticCurveTo(185, 153, 224, 168);
+  faceCtx.moveTo(288, 168);
+  faceCtx.quadraticCurveTo(330, 153, 370, 174);
+  faceCtx.stroke();
+
+  // A simple curved smile.
+  faceCtx.strokeStyle = "#241914";
+  faceCtx.lineWidth = 8;
+  faceCtx.beginPath();
+  faceCtx.moveTo(174, 344);
+  faceCtx.quadraticCurveTo(256, 392, 338, 344);
+  faceCtx.stroke();
+
+  const faceTexture = new THREE.CanvasTexture(faceCanvas);
+  faceTexture.colorSpace = THREE.SRGBColorSpace;
+  faceTexture.needsUpdate = true;
+
+  const facePositions = [];
+  const faceUvs = [];
+  const faceIndices = [];
+  const cols = 32;
+  const rows = 32;
+  for (let row = 0; row <= rows; row++) {
+    const v = row / rows;
+    const y = 0.235 - v * 0.34;
+    for (let col = 0; col <= cols; col++) {
+      const u = col / cols;
+      const x = (u - 0.5) * 0.39;
+      const nx = x / 0.225;
+      const ny = (y - 0.075) / 0.285;
+      const depth = Math.sqrt(Math.max(0.02, 1 - nx * nx - ny * ny));
+      const z = 0.015 + 0.19 * depth + 0.002;
+      facePositions.push(x, y, z);
+      faceUvs.push(u, 1 - v);
+      if (row < rows && col < cols) {
+        const a = row * (cols + 1) + col;
+        const b = a + cols + 1;
+        faceIndices.push(a, b, a + 1, b, b + 1, a + 1);
+      }
+    }
+  }
+  const faceGeometry = new THREE.BufferGeometry();
+  faceGeometry.setAttribute("position", new THREE.Float32BufferAttribute(facePositions, 3));
+  faceGeometry.setAttribute("uv", new THREE.Float32BufferAttribute(faceUvs, 2));
+  faceGeometry.setIndex(faceIndices);
+  faceGeometry.computeVertexNormals();
+  const face = new THREE.Mesh(faceGeometry, new THREE.MeshBasicMaterial({
+    map: faceTexture, transparent: true, depthWrite: false, side: THREE.DoubleSide
+  }));
+  face.name = "BenFaceTexture";
+  head.add(face);
+
+  // The nose remains a small sculpted form; eyes, brows and mouth are texture artwork.
+  sphere(head, materials.skinLight, [0, 0.025, 0.218], [0.022, 0.038, 0.027], "Nose");
+
+  // Ears remain modeled as part of the head silhouette.
   for (const side of ["left", "right"]) {
     const s = side === "left" ? -1 : 1;
     sphere(head, materials.skin, [s * 0.218, 0.055, 0.005], [0.052, 0.085, 0.045], side + "Ear");
-
-    // Slightly wider, taller eye shapes give Ben a readable animated look.
-    sphere(head, materials.eyeWhite, [s * 0.087, 0.105, 0.191], [0.071, 0.047, 0.027], side + "EyeWhite");
-    sphere(head, materials.iris, [s * 0.080, 0.103, 0.215], [0.034, 0.036, 0.014], side + "Iris");
-    sphere(head, materials.pupil, [s * 0.078, 0.103, 0.226], [0.016, 0.026, 0.009], side + "Pupil");
-    sphere(head, materials.eyeWhite, [s * 0.068, 0.119, 0.233], [0.009, 0.010, 0.006], side + "EyeHighlight");
-
-    const brow = capsule(head, materials.hair, [s * 0.15, 0.176, 0.195], [s * 0.035, 0.188, 0.207], 0.018, side + "Eyebrow");
-    brow.rotation.z += s * -0.08;
   }
-
-  // Small, integrated nose and a curved smile rather than the previous
-  // protruding nose + straight line, which looked like a muzzle.
-  sphere(head, materials.skinLight, [0, 0.025, 0.218], [0.022, 0.038, 0.027], "Nose");
-  const smileCurve = new THREE.CubicBezierCurve3(
-    new THREE.Vector3(-0.095, -0.075, 0.196),
-    new THREE.Vector3(-0.035, -0.112, 0.218),
-    new THREE.Vector3(0.035, -0.112, 0.218),
-    new THREE.Vector3(0.095, -0.075, 0.196)
-  );
-  const smile = new THREE.Mesh(
-    new THREE.TubeGeometry(smileCurve, 20, 0.006, 7, false), materials.outline
-  );
-  smile.name = "BenSmile";
-  head.add(smile);
 
   // Hair cap sits higher, exposing the forehead and eyes. A single sculpted
   // zig-zag fringe replaces the row of oversized round locks that obscured
