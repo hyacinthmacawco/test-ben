@@ -37,9 +37,10 @@ export function createHumanRig(options = {}) {
   const hip = makeBone("hip", null, [0, 0.98, 0]);
   const spine = makeBone("spine", hip, [0, 0.30, 0]);
 
-  // A clavicle/shoulder bridge directly below the neck.
-  const shoulderBridge = makeBone("shoulderBridge", spine, [0, 0.43, 0], false);
+  // The neck is the parent of the clavicle bridge, so neck movement also
+  // carries the clavicles and both shoulder joints with it.
   const neck = makeBone("neck", spine, [0, 0.51, 0]);
+  const shoulderBridge = makeBone("shoulderBridge", neck, [0, -0.08, 0], false);
   const head = makeBone("head", neck, [0, 0.19, 0]);
 
   // Arms: upper arm 0.30, forearm 0.27, hand 0.12.
