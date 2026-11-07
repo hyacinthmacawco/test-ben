@@ -144,10 +144,19 @@ export function createHumanRig(options = {}) {
         joints[side + "Knee"].rotation.x = recovery * 0.78 * amplitude;
       }
 
-      // Arms counter-swing against the legs.
+      // Arms counter-swing against the legs. Unlike the legs, the upper
+      // arms extend along the X axis, so rotate around Y to swing them
+      // forward and backward through the Z axis. Mirror the local rotation
+      // on each side so both arms move in the same world-space direction.
       for (const [side, phase] of [["left", leftPhase], ["right", rightPhase]]) {
-        joints[side + "Shoulder"].rotation.x = -Math.sin(phase) * 0.48 * amplitude;
-        joints[side + "Elbow"].rotation.x = -0.12 - Math.max(0, Math.cos(phase)) * 0.24 * amplitude;
+        const sideSign = side === "left" ? -1 : 1;
+        const armSwing = Math.sin(phase);
+        const elbowBend = 0.16 + Math.max(0, Math.cos(phase)) * 0.22 * amplitude;
+
+        joints[side + "Shoulder"].rotation.y =
+          -sideSign * armSwing * 0.62 * amplitude;
+        joints[side + "Elbow"].rotation.y =
+          sideSign * elbowBend;
       }
 
       // Small torso counter-rotation and vertical gait bounce.
