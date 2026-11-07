@@ -188,7 +188,9 @@ export function createHumanRig(options = {}) {
         // gradually through the cycle, so the forearm follows the upper arm
         // instead of looking like one rigid piece.
         const elbowFlex = (0.12 + (0.5 + 0.5 * armSwing) * 0.34) * amplitude;
-        applyWorldXSwing(elbow, elbowRest, elbowFlex);
+        // Negative X rotation bends the forearm toward the character's
+        // front (+Z); positive rotation was folding it behind the body.
+        applyWorldXSwing(elbow, elbowRest, -elbowFlex);
       }
 
       // Subtle torso counter-rotation; keep the body at a constant height.
