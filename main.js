@@ -131,28 +131,29 @@ export function createHumanRig(options = {}) {
       if (!walking) return;
 
       const cycle = timeSeconds * speed * Math.PI * 2;
-      const stride = 0.48 * amplitude;
+      const stride = 0.62 * amplitude;
       const leftPhase = cycle;
       const rightPhase = cycle + Math.PI;
 
-      // Legs swing opposite one another; knees flex during the recovery phase.
+      // The rig's forward/backward axis is Z, so limbs swing around local X.
+      // Opposite phases keep the legs alternating like a real gait.
       for (const [side, phase] of [["left", leftPhase], ["right", rightPhase]]) {
         const swing = Math.sin(phase);
         const recovery = Math.max(0, Math.cos(phase));
-        joints[side + "Thigh"].rotation.z = swing * stride;
-        joints[side + "Knee"].rotation.z = recovery * 0.62 * amplitude;
+        joints[side + "Thigh"].rotation.x = swing * stride;
+        joints[side + "Knee"].rotation.x = recovery * 0.78 * amplitude;
       }
 
-      // Natural counter-swing: arms move opposite to their same-side legs.
+      // Arms counter-swing against the legs.
       for (const [side, phase] of [["left", leftPhase], ["right", rightPhase]]) {
-        joints[side + "Shoulder"].rotation.z = -Math.sin(phase) * 0.42 * amplitude;
-        joints[side + "Elbow"].rotation.z = -0.12 - Math.max(0, Math.cos(phase)) * 0.28 * amplitude;
+        joints[side + "Shoulder"].rotation.x = -Math.sin(phase) * 0.48 * amplitude;
+        joints[side + "Elbow"].rotation.x = -0.12 - Math.max(0, Math.cos(phase)) * 0.24 * amplitude;
       }
 
-      // Subtle pelvis/torso movement gives the cycle weight without exaggeration.
-      joints.hip.rotation.z = Math.sin(cycle * 2) * 0.025 * amplitude;
-      joints.spine.rotation.z = -Math.sin(cycle * 2) * 0.018 * amplitude;
-      root.position.y = Math.abs(Math.sin(cycle * 2)) * 0.035 * amplitude;
+      // Small torso counter-rotation and vertical gait bounce.
+      joints.hip.rotation.y = Math.sin(cycle) * 0.035 * amplitude;
+      joints.spine.rotation.y = -Math.sin(cycle) * 0.025 * amplitude;
+      root.position.y = Math.abs(Math.sin(cycle * 2)) * 0.045 * amplitude;
     },
     resetPose() {
       for (const [bone, rotation] of initialRotations) {
