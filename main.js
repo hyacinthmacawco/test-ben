@@ -49,6 +49,12 @@ export function createHumanRig(options = {}) {
     const elbow = makeBone(side + "Elbow", shoulder, [sign * 0.30, -0.015, 0]);
     const wrist = makeBone(side + "Wrist", elbow, [sign * 0.27, -0.005, 0]);
     makeBone(side + "HandEnd", wrist, [sign * 0.12, 0, 0], false);
+
+    // Rest pose: let the arms hang naturally instead of extending sideways.
+    // The shoulder rotates around Z to bring the upper arm down alongside
+    // the torso; a small elbow bend keeps the arm from looking rigid.
+    shoulder.rotation.z = -sign * 0.88;
+    elbow.rotation.z = -sign * 0.12;
   }
 
   // Legs: thigh 0.43, lower leg 0.43, ankle extension 0.12.
@@ -144,19 +150,13 @@ export function createHumanRig(options = {}) {
         joints[side + "Knee"].rotation.x = recovery * 0.78 * amplitude;
       }
 
-      // Arms counter-swing against the legs. Unlike the legs, the upper
-      // arms extend along the X axis, so rotate around Y to swing them
-      // forward and backward through the Z axis. Mirror the local rotation
-      // on each side so both arms move in the same world-space direction.
+      // Swing the arms from the shoulder joints, opposite to the legs.
+      // The Z rotation above keeps the arms naturally lowered; Y adds the
+      // forward/backward pendulum motion without returning them to a T-pose.
       for (const [side, phase] of [["left", leftPhase], ["right", rightPhase]]) {
         const sideSign = side === "left" ? -1 : 1;
-        const armSwing = Math.sin(phase);
-        const elbowBend = 0.16 + Math.max(0, Math.cos(phase)) * 0.22 * amplitude;
-
         joints[side + "Shoulder"].rotation.y =
-          -sideSign * armSwing * 0.62 * amplitude;
-        joints[side + "Elbow"].rotation.y =
-          sideSign * elbowBend;
+          sideSign * Math.sin(phase) * 0.58 * amplitude;
       }
 
       // Small torso counter-rotation and vertical gait bounce.
