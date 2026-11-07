@@ -24,11 +24,7 @@ export function createBen({ createHumanRig }) {
     skinLight: new THREE.MeshStandardMaterial({ color: 0xe9b09a, roughness: 0.9 }),
     hair: new THREE.MeshStandardMaterial({ color: 0x38231d, roughness: 0.95 }),
     hairLight: new THREE.MeshStandardMaterial({ color: 0x543025, roughness: 0.95 }),
-    shirtBlack: new THREE.MeshStandardMaterial({ color: 0x111714, roughness: 0.92 }),
     green: new THREE.MeshStandardMaterial({ color: 0x079b4c, roughness: 0.82 }),
-    greenDark: new THREE.MeshStandardMaterial({ color: 0x075d32, roughness: 0.9 }),
-    pants: new THREE.MeshStandardMaterial({ color: 0x704329, roughness: 0.95 }),
-    pantsDark: new THREE.MeshStandardMaterial({ color: 0x4d2e20, roughness: 0.95 }),
     shoeWhite: new THREE.MeshStandardMaterial({ color: 0xe5e8df, roughness: 0.8 }),
     shoeGreen: new THREE.MeshStandardMaterial({ color: 0x078c48, roughness: 0.82 }),
     sole: new THREE.MeshStandardMaterial({ color: 0x252a28, roughness: 0.95 }),
@@ -93,64 +89,239 @@ export function createBen({ createHumanRig }) {
     return mesh;
   };
 
-  // Torso: use a shaped, tapered shirt volume instead of a round sphere.
-  // The shoulder line is broad, the waist is narrower, and the hem stays
-  // fairly straight like Ben's fitted Omniverse shirt.
-  const spine = joints.spine;
-  const shirtProfile = [
-    new THREE.Vector2(0.205, -0.32),
-    new THREE.Vector2(0.235, -0.305),
-    new THREE.Vector2(0.252, -0.265),
-    new THREE.Vector2(0.260, -0.12),
-    new THREE.Vector2(0.275, 0.08),
-    new THREE.Vector2(0.285, 0.245),
-    new THREE.Vector2(0.265, 0.335),
-    new THREE.Vector2(0.215, 0.415),
-    new THREE.Vector2(0.145, 0.455)
-  ];
-  const shirtBody = add(spine, new THREE.LatheGeometry(shirtProfile, 96),
-    materials.shirtBlack, [0, 0.08, 0], [1, 1, 0.76], "BenShirtTorso");
-  shirtBody.geometry.computeVertexNormals();
-  // Shirt graphics are painted into the torso's UV texture, not separate meshes.
-  const shirtCanvas = document.createElement("canvas");
-  shirtCanvas.width = 512;
-  shirtCanvas.height = 512;
-  const shirtCtx = shirtCanvas.getContext("2d");
-  shirtCtx.fillStyle = "#111714";
-  shirtCtx.fillRect(0, 0, 512, 512);
-  // LatheGeometry's front-facing seam is at both U edges (0 and 1).
-  shirtCtx.fillStyle = "#079b4c";
-  shirtCtx.fillRect(0, 0, 22, 512);
-  shirtCtx.fillRect(490, 0, 22, 512);
-  // Small green collar area near the top of the torso UV.
-  shirtCtx.fillRect(0, 0, 512, 48);
-  shirtCtx.fillStyle = "#168b4c";
-  shirtCtx.font = "900 112px Arial";
-  shirtCtx.textAlign = "center";
-  shirtCtx.textBaseline = "middle";
-  shirtCtx.lineJoin = "round";
-  shirtCtx.strokeStyle = "#f1f0e7";
-  shirtCtx.lineWidth = 13;
-  // Front-facing UV seam is split between the left and right canvas edges.
-  // Drawing at both edges joins the two halves into one front-facing "10".
-  for (const seamX of [0, 512]) {
-    shirtCtx.strokeText("10", seamX, 245);
-    shirtCtx.fillText("10", seamX, 245);
-  }
-  const shirtTexture = new THREE.CanvasTexture(shirtCanvas);
-  shirtTexture.colorSpace = THREE.SRGBColorSpace;
-  shirtTexture.flipY = true;
-  materials.shirtBlack.map = shirtTexture;
-  materials.shirtBlack.color.set(0xffffff);
-  materials.shirtBlack.needsUpdate = true;
-  // Green sleeve seams follow the shoulder slope.
-  for (const side of ["left", "right"]) {
-    const s = side === "left" ? -1 : 1;
-    capsule(spine, materials.greenDark, [s * 0.18, 0.39, 0.005], [s * 0.285, 0.27, 0.008], 0.038, side + "ShoulderAccent");
-  }
+  // Build the torso, pelvis, neck and all four limb sections as one
+  // smooth implicit surface, then bind its vertices to the existing rig.
+  // This is a real SkinnedMesh: the surface is continuous at rest and deforms
+  // with shoulder, elbow, hip and knee bones during the walk cycle.
+  const buildContinuousBody = () => {
+    group.updateMatrixWorld(true);
+    const primitives = [];
+    const addEllipsoid = (center, radii, region) =>
+      primitives.push({ type: "ellipsoid", center: new THREE.Vector3(...center),
+        radii: new THREE.Vector3(...radii), region });
+    const addCapsule = (a, b, radius, region) =>
+      primitives.push({ type: "capsule", a: new THREE.Vector3(...a),
+        b: new THREE.Vector3(...b), radius, region });
+
+    const worldPoint = bone => {
+      const p = new THREE.Vector3();
+      bone.getWorldPosition(p);
+      return p.toArray();
+    };
+    const pHip = worldPoint(joints.hip);
+    const pSpine = worldPoint(joints.spine);
+    const pNeck = worldPoint(joints.neck);
+
+    addEllipsoid([0, 1.37, 0], [0.285, 0.455, 0.19], "shirt");
+    addEllipsoid([0, 1.01, 0], [0.195, 0.255, 0.16], "pants");
+    addEllipsoid([0, 1.70, 0], [0.105, 0.18, 0.105], "skin");
+
+    for (const side of ["left", "right"]) {
+      const shoulder = joints[side + "Shoulder"];
+      const elbow = joints[side + "Elbow"];
+      const wrist = joints[side + "Wrist"];
+      addCapsule(worldPoint(shoulder), worldPoint(elbow), 0.079, "skin");
+      addCapsule(worldPoint(shoulder), worldPoint(elbow), 0.112, "sleeve");
+      addCapsule(worldPoint(elbow), worldPoint(wrist), 0.067, "skin");
+
+      const thigh = joints[side + "Thigh"];
+      const knee = joints[side + "Knee"];
+      const ankle = joints[side + "Ankle"];
+      addCapsule(worldPoint(thigh), worldPoint(knee), 0.125, "pants");
+      addCapsule(worldPoint(knee), worldPoint(ankle), 0.112, "pants");
+    }
+
+    const smoothMin = (a, b, k) => {
+      const h = Math.max(k - Math.abs(a - b), 0) / k;
+      return Math.min(a, b) - h * h * k * 0.25;
+    };
+    const primitiveDistance = (p, primitive) => {
+      if (primitive.type === "ellipsoid") {
+        const q = new THREE.Vector3(
+          (p.x - primitive.center.x) / primitive.radii.x,
+          (p.y - primitive.center.y) / primitive.radii.y,
+          (p.z - primitive.center.z) / primitive.radii.z
+        );
+        const k0 = q.length();
+        const k1 = new THREE.Vector3(
+          q.x / primitive.radii.x,
+          q.y / primitive.radii.y,
+          q.z / primitive.radii.z
+        ).length();
+        return k0 * (k0 - 1) / Math.max(k1, 1e-5);
+      }
+      const ab = primitive.b.clone().sub(primitive.a);
+      const t = THREE.MathUtils.clamp(
+        p.clone().sub(primitive.a).dot(ab) / Math.max(ab.lengthSq(), 1e-8), 0, 1
+      );
+      return p.distanceTo(primitive.a.clone().addScaledVector(ab, t)) - primitive.radius;
+    };
+    const sample = p => {
+      let distance = Infinity;
+      let region = "skin";
+      for (const primitive of primitives) {
+        const d = primitiveDistance(p, primitive);
+        if (d < distance) region = primitive.region;
+        distance = smoothMin(distance, d, 0.075);
+      }
+      return { distance, region };
+    };
+
+    // Marching tetrahedra turns the smooth-union field into a single indexed
+    // triangle surface. A moderate grid keeps load time and mobile performance
+    // reasonable while providing enough vertices for smooth joint deformation.
+    const bounds = { minX: -0.58, maxX: 0.58, minY: 0.34, maxY: 1.91,
+      minZ: -0.31, maxZ: 0.31 };
+    const step = 0.035;
+    const nx = Math.ceil((bounds.maxX - bounds.minX) / step);
+    const ny = Math.ceil((bounds.maxY - bounds.minY) / step);
+    const nz = Math.ceil((bounds.maxZ - bounds.minZ) / step);
+    const values = new Float32Array((nx + 1) * (ny + 1) * (nz + 1));
+    const regions = new Uint8Array(values.length);
+    const index = (x, y, z) => (z * (ny + 1) + y) * (nx + 1) + x;
+    const regionId = { skin: 0, shirt: 1, sleeve: 1, pants: 2 };
+    const pointAt = (x, y, z) => new THREE.Vector3(
+      bounds.minX + x * step, bounds.minY + y * step, bounds.minZ + z * step
+    );
+
+    for (let z = 0; z <= nz; z++) for (let y = 0; y <= ny; y++)
+      for (let x = 0; x <= nx; x++) {
+        const id = index(x, y, z);
+        const result = sample(pointAt(x, y, z));
+        values[id] = result.distance;
+        regions[id] = regionId[result.region] ?? 0;
+      }
+
+    const positions = [];
+    const colors = [];
+    const skinIndices = [];
+    const skinWeights = [];
+    const indices = [];
+    const edgeCache = new Map();
+    const tetrahedra = [[0, 5, 1, 6], [0, 1, 2, 6],
+      [0, 2, 3, 6], [0, 3, 7, 6], [0, 7, 4, 6], [0, 4, 5, 6]];
+    const cubeCorners = [[0,0,0],[1,0,0],[1,1,0],[0,1,0],
+      [0,0,1],[1,0,1],[1,1,1],[0,1,1]];
+    const boneSegments = [];
+    const addBoneSegment = (name, childName) => {
+      const bone = joints[name];
+      const a = new THREE.Vector3();
+      const b = new THREE.Vector3();
+      bone.getWorldPosition(a);
+      joints[childName].getWorldPosition(b);
+      const boneIndex = rig.bones.indexOf(bone);
+      boneSegments.push({ a, b, boneIndex });
+    };
+    addBoneSegment("hip", "spine");
+    addBoneSegment("spine", "neck");
+    for (const side of ["left", "right"]) {
+      addBoneSegment(side + "Shoulder", side + "Elbow");
+      addBoneSegment(side + "Elbow", side + "Wrist");
+      addBoneSegment(side + "Thigh", side + "Knee");
+      addBoneSegment(side + "Knee", side + "Ankle");
+    }
+
+    const appendVertex = p => {
+      const primitiveResult = sample(p);
+      const region = primitiveResult.region;
+      let color;
+      if (region === "shirt") color = new THREE.Color(0x111714);
+      else if (region === "sleeve") color = new THREE.Color(0x079b4c);
+      else if (region === "pants") color = new THREE.Color(0x704329);
+      else color = new THREE.Color(0xd99a82);
+
+      // Paint the central green shirt stripe directly into vertex colors.
+      if (region === "shirt" && p.z > 0.105 && Math.abs(p.x) < 0.052 &&
+          p.y > 1.08 && p.y < 1.78) color.setHex(0x079b4c);
+      positions.push(p.x, p.y, p.z);
+      colors.push(color.r, color.g, color.b);
+
+      const nearest = boneSegments.map(segment => {
+        const ab = segment.b.clone().sub(segment.a);
+        const t = THREE.MathUtils.clamp(
+          p.clone().sub(segment.a).dot(ab) / Math.max(ab.lengthSq(), 1e-8), 0, 1
+        );
+        return { index: segment.boneIndex,
+          distance: p.distanceTo(segment.a.clone().addScaledVector(ab, t)) };
+      }).sort((a, b) => a.distance - b.distance).slice(0, 4);
+      const weights = nearest.map(item => 1 / Math.pow(item.distance + 0.045, 3));
+      const total = weights.reduce((sum, value) => sum + value, 0);
+      const ids = [0, 0, 0, 0], ws = [0, 0, 0, 0];
+      nearest.forEach((item, i) => {
+        ids[i] = item.index;
+        ws[i] = weights[i] / total;
+      });
+      skinIndices.push(...ids);
+      skinWeights.push(...ws);
+      return positions.length / 3 - 1;
+    };
+
+    const edgeVertex = (a, b, pa, pb, da, db) => {
+      const key = a < b ? a + ":" + b : b + ":" + a;
+      if (edgeCache.has(key)) return edgeCache.get(key);
+      const t = da / (da - db);
+      const p = pa.clone().lerp(pb, t);
+      const id = appendVertex(p);
+      edgeCache.set(key, id);
+      return id;
+    };
+    const emitTriangle = (a, b, c) => {
+      indices.push(a, b, c);
+    };
+
+    for (let z = 0; z < nz; z++) for (let y = 0; y < ny; y++)
+      for (let x = 0; x < nx; x++) {
+        const cornerIds = cubeCorners.map(([dx,dy,dz]) => index(x+dx,y+dy,z+dz));
+        const cornerPoints = cubeCorners.map(([dx,dy,dz]) => pointAt(x+dx,y+dy,z+dz));
+        const cornerValues = cornerIds.map(id => values[id]);
+        if (cornerValues.every(v => v >= 0) || cornerValues.every(v => v < 0)) continue;
+
+        for (const tet of tetrahedra) {
+          const inside = tet.filter(i => cornerValues[i] < 0);
+          const outside = tet.filter(i => cornerValues[i] >= 0);
+          if (!inside.length || !outside.length) continue;
+          const cross = (i, j) => edgeVertex(cornerIds[i], cornerIds[j],
+            cornerPoints[i], cornerPoints[j], cornerValues[i], cornerValues[j]);
+          if (inside.length === 1) {
+            emitTriangle(cross(inside[0],outside[0]), cross(inside[0],outside[1]),
+              cross(inside[0],outside[2]));
+          } else if (inside.length === 3) {
+            emitTriangle(cross(outside[0],inside[0]), cross(outside[0],inside[2]),
+              cross(outside[0],inside[1]));
+          } else {
+            const a = cross(inside[0],outside[0]);
+            const b = cross(inside[0],outside[1]);
+            const c = cross(inside[1],outside[0]);
+            const d = cross(inside[1],outside[1]);
+            emitTriangle(a, b, c);
+            emitTriangle(b, d, c);
+          }
+        }
+      }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+    geometry.setAttribute("skinIndex", new THREE.Uint16BufferAttribute(skinIndices, 4));
+    geometry.setAttribute("skinWeight", new THREE.Float32BufferAttribute(skinWeights, 4));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+    const material = new THREE.MeshStandardMaterial({
+      vertexColors: true, roughness: 0.88, metalness: 0
+    });
+    const body = new THREE.SkinnedMesh(geometry, material);
+    body.name = "BenContinuousSkinnedBody";
+    body.castShadow = true;
+    body.receiveShadow = true;
+    group.add(body);
+    group.updateMatrixWorld(true);
+    body.bind(rig.skeleton);
+    return body;
+  };
+
+  const continuousBody = buildContinuousBody();
 
   // Neck and head.
-  sphere(joints.neck, materials.skin, [0, 0.075, 0], [0.112, 0.235, 0.11], "BenNeck");
   const head = joints.head;
   sphere(head, materials.skin, [0, 0.075, 0.015], [0.225, 0.285, 0.19], "BenHead");
   // A single curved face decal carries the eyes, brows and mouth as pixels.
@@ -286,73 +457,9 @@ export function createBen({ createHumanRig }) {
   rightLock.rotation.z = 0.18;
   sphere(head, materials.hair, [0, -0.105, -0.07], [0.19, 0.10, 0.15], "BackHair");
 
-  // Arms: sleeves, exposed upper arms, forearms and palms are attached to
-  // shoulder/elbow/wrist bones respectively, so every segment follows joints.
+  // Shoes remain separate accessories attached to the ankle joints.
   for (const side of ["left", "right"]) {
-    const sign = side === "left" ? -1 : 1;
-    const shoulder = joints[side + "Shoulder"];
-    const elbow = joints[side + "Elbow"];
-    const wrist = joints[side + "Wrist"];
-
-    // The sleeve, upper arm and forearm are softly tapered lofts. Their
-    // rounded ends deliberately overlap the hidden joint volumes to avoid
-    // the segmented toy-arm appearance while retaining elbow articulation.
-    loftAlongX(shoulder, materials.green, 0.235, 0.112, 0.096, sign, side + "TShirtSleeve");
-    loftAlongX(shoulder, materials.skin, 0.355, 0.074, 0.066, sign, side + "UpperArm");
-    sphere(elbow, materials.skin, [0, 0, 0], [0.073, 0.073, 0.073], side + "ElbowJoint");
-    loftAlongX(elbow, materials.skin, 0.325, 0.066, 0.059, sign, side + "Forearm");
-    sphere(wrist, materials.skin, [0, 0, 0], [0.055, 0.06, 0.052], side + "Wrist");
-    capsule(wrist, materials.skin, [0, 0, 0], [sign * 0.12, 0, 0], 0.065, side + "Hand");
-    // Thumb nub gives the hand a readable silhouette.
-    sphere(wrist, materials.skin, [sign * 0.055, -0.045, 0.045], [0.035, 0.065, 0.04], side + "Thumb");
-  }
-
-  // Waist and trousers: a tapered pelvis avoids the spherical diaper-like
-  // silhouette. The lower legs widen toward the hems to match Ben's flared jeans.
-  const hip = joints.hip;
-  const pelvisProfile = [
-    new THREE.Vector2(0.145, -0.255),
-    new THREE.Vector2(0.165, -0.225),
-    new THREE.Vector2(0.185, -0.145),
-    new THREE.Vector2(0.195, -0.045),
-    new THREE.Vector2(0.175, 0.025),
-    new THREE.Vector2(0.145, 0.145)
-  ];
-  add(hip, new THREE.LatheGeometry(pelvisProfile, 96), materials.pants,
-    [0, -0.005, 0], [1, 1, 0.82], "BenWaist");
-
-  const trouserSegment = (parent, topRadius, hemRadius, name) => {
-    // A softly rounded loft replaces the flat-ended cylinder and separate
-    // seam spheres. It extends slightly through each joint so the upper and
-    // lower trouser sections overlap instead of exposing a dark gap.
-    const halfLength = 0.255;
-    const profile = [
-      new THREE.Vector2(hemRadius * 0.88, -halfLength),
-      new THREE.Vector2(hemRadius * 0.97, -halfLength + 0.018),
-      new THREE.Vector2(hemRadius, -halfLength + 0.060),
-      new THREE.Vector2(hemRadius * 0.98, -halfLength * 0.35),
-      new THREE.Vector2(topRadius * 1.02, halfLength * 0.28),
-      new THREE.Vector2(topRadius, halfLength - 0.060),
-      new THREE.Vector2(topRadius * 0.97, halfLength - 0.018),
-      new THREE.Vector2(topRadius * 0.88, halfLength)
-    ];
-    const geometry = new THREE.LatheGeometry(profile, 48);
-    geometry.computeVertexNormals();
-    const leg = add(parent, geometry, materials.pants, [0, -0.215, 0],
-      [1, 1, 0.90], name);
-    return leg;
-  };
-
-  for (const side of ["left", "right"]) {
-    const sign = side === "left" ? -1 : 1;
-    const thigh = joints[side + "Thigh"];
-    const knee = joints[side + "Knee"];
     const ankle = joints[side + "Ankle"];
-    trouserSegment(thigh, 0.105, 0.115, side + "TrouserUpper");
-    trouserSegment(knee, 0.092, 0.145, side + "TrouserLower");
-    sphere(ankle, materials.pants, [0, 0, 0], [0.108, 0.12, 0.108], side + "AnkleCuff");
-
-    // Shoes point forward (+Z); each shoe is parented to the ankle.
     sphere(ankle, materials.shoeWhite, [0, -0.075, 0.105], [0.135, 0.075, 0.22], side + "Sneaker");
     sphere(ankle, materials.sole, [0, -0.12, 0.11], [0.14, 0.035, 0.225], side + "Sole");
     sphere(ankle, materials.shoeGreen, [0, -0.025, 0.19], [0.105, 0.035, 0.105], side + "ToeGreen");
