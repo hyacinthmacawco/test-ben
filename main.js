@@ -161,7 +161,9 @@ export function createHumanRig(options = {}) {
         // continuously varying flex so the forearm follows through smoothly.
         joints[side + "Shoulder"].rotation.y =
           sideSign * armSwing * 0.58 * amplitude;
-        const elbowFlex = 0.10 + (0.5 + 0.5 * Math.cos(phase)) * 0.20 * amplitude;
+        // Keep a clear baseline bend and flex further as the arm swings
+        // forward. The larger range makes the elbow articulation visible.
+        const elbowFlex = 0.38 + (0.5 + 0.5 * Math.cos(phase)) * 0.42 * amplitude;
         joints[side + "Elbow"].rotation.z = -sideSign * elbowFlex;
       }
 
