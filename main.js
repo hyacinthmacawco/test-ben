@@ -2,21 +2,17 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 /**
- * Build a simple articulated humanoid skeleton.
+ * Build an articulated humanoid pivot rig.
  *
- * Joint layout:
- *   1 hip (pelvis/root), 1 neck, 2 shoulders, 2 elbows, 2 knees.
- *
- * The returned rig exposes THREE.Bone objects in `rig.joints`.
- * Rotate a joint locally to pose it, e.g.:
- *   rig.joints.leftElbow.rotation.z = -0.8;
+ * Main joints: hip, neck, two shoulders, two elbows, and two knees.
+ * The clavicle bar sits directly below the neck and connects both shoulders.
  */
 export function createHumanRig(options = {}) {
   const {
     boneColor = 0x8bb8e8,
     jointColor = 0xf0bd72,
-    boneRadius = 0.055,
-    jointRadius = 0.085
+    boneRadius = 0.045,
+    jointRadius = 0.065
   } = options;
 
   const root = new THREE.Group();
@@ -25,43 +21,48 @@ export function createHumanRig(options = {}) {
   const joints = {};
   const bones = [];
 
-  const makeBone = (name, parent, position) => {
+  const makeBone = (name, parent, position, exposeAsJoint = true) => {
     const bone = new THREE.Bone();
     bone.name = name;
     bone.position.set(position[0], position[1], position[2]);
     if (parent) parent.add(bone);
     else root.add(bone);
-    joints[name] = bone;
+    if (exposeAsJoint) joints[name] = bone;
     bones.push(bone);
     return bone;
   };
 
-  // Central chain. The hip is the single root/pelvis joint.
-  const hip = makeBone("hip", null, [0, 1.05, 0]);
-  const spine = makeBone("spine", hip, [0, 0.28, 0]);
-  const neck = makeBone("neck", spine, [0, 0.57, 0]);
-  const head = makeBone("head", neck, [0, 0.22, 0]);
+  // Approximate adult human proportions, with the feet near y = 0.
+  // Pelvis/hip pivot is the root of the skeleton.
+  const hip = makeBone("hip", null, [0, 0.98, 0]);
+  const spine = makeBone("spine", hip, [0, 0.30, 0]);
 
-  // Arms: shoulder -> elbow -> wrist/end.
+  // The shoulder bridge is a short horizontal clavicle line just below
+  // the neck. Both shoulder pivots branch from its ends.
+  const shoulderBridge = makeBone("shoulderBridge", spine, [0, 0.43, 0], false);
+  const neck = makeBone("neck", spine, [0, 0.51, 0]);
+  const head = makeBone("head", neck, [0, 0.19, 0]);
+
+  // Arms: upper arm 0.30, forearm 0.27, hand 0.12.
   for (const side of ["left", "right"]) {
     const sign = side === "left" ? -1 : 1;
-    const shoulder = makeBone(side + "Shoulder", spine, [sign * 0.29, 0.48, 0]);
-    const elbow = makeBone(side + "Elbow", shoulder, [sign * 0.39, -0.02, 0]);
-    makeBone(side + "Wrist", elbow, [sign * 0.34, -0.015, 0]);
+    const shoulder = makeBone(side + "Shoulder", shoulderBridge, [sign * 0.22, 0, 0]);
+    const elbow = makeBone(side + "Elbow", shoulder, [sign * 0.30, -0.015, 0]);
+    makeBone(side + "Wrist", elbow, [sign * 0.27, -0.005, 0]);
+    makeBone(side + "HandEnd", joints[side + "Wrist"], [sign * 0.12, 0, 0], false);
   }
 
-  // Legs: hip branches into two upper legs, each with one knee.
+  // Legs: upper leg 0.43, lower leg 0.43, foot/ankle extension 0.12.
   for (const side of ["left", "right"]) {
     const sign = side === "left" ? -1 : 1;
-    const thigh = makeBone(side + "Thigh", hip, [sign * 0.14, -0.08, 0]);
-    const knee = makeBone(side + "Knee", thigh, [0, -0.48, 0]);
-    makeBone(side + "Ankle", knee, [0, -0.48, 0]);
+    const thigh = makeBone(side + "Thigh", hip, [sign * 0.105, -0.06, 0]);
+    const knee = makeBone(side + "Knee", thigh, [0, -0.43, 0]);
+    makeBone(side + "Ankle", knee, [0, -0.43, 0]);
   }
 
   const skeleton = new THREE.Skeleton(bones);
   root.updateMatrixWorld(true);
 
-  // Build visual segments between each bone and its direct children.
   const boneMaterial = new THREE.MeshStandardMaterial({
     color: boneColor, roughness: 0.62, metalness: 0.08
   });
@@ -72,10 +73,12 @@ export function createHumanRig(options = {}) {
   const segmentGeometry = new THREE.CylinderGeometry(boneRadius * 0.82, boneRadius, 1, 12);
 
   for (const bone of bones) {
-    const marker = new THREE.Mesh(jointGeometry, jointMaterial);
-    marker.name = bone.name + "Marker";
-    marker.position.set(0, 0, 0);
-    bone.add(marker);
+    // The shoulder bridge is a structural clavicle, not an extra joint marker.
+    if (bone.name !== "shoulderBridge" && bone.name !== "HandEnd") {
+      const marker = new THREE.Mesh(jointGeometry, jointMaterial);
+      marker.name = bone.name + "Marker";
+      bone.add(marker);
+    }
 
     for (const child of bone.children) {
       if (!child.isBone) continue;
@@ -95,12 +98,11 @@ export function createHumanRig(options = {}) {
     }
   }
 
-  // A slightly larger head marker makes the neck/head orientation obvious.
   const headMesh = new THREE.Mesh(
-    new THREE.SphereGeometry(0.16, 22, 18),
+    new THREE.SphereGeometry(0.14, 22, 18),
     new THREE.MeshStandardMaterial({ color: 0xd5dfeb, roughness: 0.7 })
   );
-  headMesh.position.y = 0.10;
+  headMesh.position.y = 0.09;
   head.add(headMesh);
 
   const initialRotations = new Map(
@@ -141,7 +143,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x10151d);
 
 const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.set(3.4, 2.6, 5.5);
+camera.position.set(3.4, 2.4, 5.5);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.set(0, 1.05, 0);
@@ -178,5 +180,4 @@ renderer.setAnimationLoop(() => {
   renderer.render(scene, camera);
 });
 
-// Expose the rig for quick experimentation in the browser console.
 window.humanRig = humanRig;
