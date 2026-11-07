@@ -163,14 +163,16 @@ export function createHumanRig(options = {}) {
           sideSign * armSwing * 0.58 * amplitude;
         // Keep a clear baseline bend and flex further as the arm swings
         // forward. The larger range makes the elbow articulation visible.
-        const elbowFlex = 0.38 + (0.5 + 0.5 * Math.cos(phase)) * 0.42 * amplitude;
+        // Increase elbow flexion in phase with the shoulder's forward swing,
+        // rather than letting the forearm flex on the opposite half-cycle.
+        const elbowFlex = 0.38 + (0.5 + 0.5 * armSwing) * 0.42 * amplitude;
         joints[side + "Elbow"].rotation.z = -sideSign * elbowFlex;
       }
 
-      // Small torso counter-rotation and vertical gait bounce.
+      // Subtle torso counter-rotation; keep the body at a constant height.
       joints.hip.rotation.y = Math.sin(cycle) * 0.035 * amplitude;
       joints.spine.rotation.y = -Math.sin(cycle) * 0.025 * amplitude;
-      root.position.y = Math.abs(Math.sin(cycle * 2)) * 0.045 * amplitude;
+      root.position.y = 0;
     },
     resetPose() {
       for (const [bone, rotation] of initialRotations) {
