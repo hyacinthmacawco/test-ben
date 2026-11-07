@@ -11,6 +11,10 @@
     #info { position: fixed; left: 16px; top: 14px; padding: 12px 14px; max-width: min(340px, calc(100vw - 32px)); border: 1px solid #ffffff20; border-radius: 12px; background: #18212dcc; backdrop-filter: blur(10px); line-height: 1.5; pointer-events: none; }
     #info strong { display:block; font-size: 15px; margin-bottom: 4px; }
     #info span { color: #aebbd0; }
+    #capture-photo { position: fixed; top: 14px; right: 16px; z-index: 5; border: 1px solid #ffffff35; border-radius: 12px; padding: 11px 15px; color: #f4f7fb; background: #18212dcc; backdrop-filter: blur(10px); font: 600 14px system-ui, sans-serif; cursor: pointer; box-shadow: 0 4px 18px #0005; }
+    #capture-photo:hover { background: #26364acc; }
+    #capture-photo:active { transform: scale(.97); }
+    #capture-photo:focus-visible { outline: 2px solid #8bb8e8; outline-offset: 3px; }
   </style>
   <script type="importmap">
     { "imports": {
@@ -21,6 +25,7 @@
 </head>
 <body>
   <div id="info"><strong>Ben 10 character rig</strong><span>Drag to orbit · Scroll to zoom<br>Procedural Ben model driven by the articulated walking rig</span></div>
+  <button id="capture-photo" type="button" aria-label="Take a photo of the scene">Take photo</button>
   <canvas id="scene"></canvas>
   <script type="module" src="./main.js"></script>
 </body>
