@@ -46,7 +46,9 @@ export function createHumanRig(options = {}) {
   // Arms: upper arm 0.30, forearm 0.27, hand 0.12.
   for (const side of ["left", "right"]) {
     const sign = side === "left" ? -1 : 1;
-    const shoulder = makeBone(side + "Shoulder", shoulderBridge, [sign * 0.22, 0, 0]);
+    // Shorter clavicles bring the shoulder joints closer to the neck,
+    // giving the shoulder girdle more natural human proportions.
+    const shoulder = makeBone(side + "Shoulder", shoulderBridge, [sign * 0.17, 0, 0]);
     const elbow = makeBone(side + "Elbow", shoulder, [sign * 0.30, -0.015, 0]);
     const wrist = makeBone(side + "Wrist", elbow, [sign * 0.27, -0.005, 0]);
     makeBone(side + "HandEnd", wrist, [sign * 0.12, 0, 0], false);
