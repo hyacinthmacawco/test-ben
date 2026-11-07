@@ -169,7 +169,8 @@ export function createHumanRig(options = {}) {
         localDelta.copy(parentWorldInverse)
           .multiply(worldSwing)
           .multiply(bone.parent.getWorldQuaternion(new THREE.Quaternion()));
-        bone.quaternion.copy(localDelta).multiply(restRotation);
+        const restQuaternion = new THREE.Quaternion().setFromEuler(restRotation);
+        bone.quaternion.copy(localDelta).multiply(restQuaternion);
       };
 
       for (const [side, legPhase] of [["left", leftPhase], ["right", rightPhase]]) {
