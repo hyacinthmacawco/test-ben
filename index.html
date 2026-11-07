@@ -1,1 +1,27 @@
-
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Three.js Human Rig</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #10151d; color: #e8edf5; font: 14px system-ui, sans-serif; }
+    #scene { display: block; width: 100%; height: 100%; }
+    #info { position: fixed; left: 16px; top: 14px; padding: 12px 14px; max-width: min(340px, calc(100vw - 32px)); border: 1px solid #ffffff20; border-radius: 12px; background: #18212dcc; backdrop-filter: blur(10px); line-height: 1.5; pointer-events: none; }
+    #info strong { display:block; font-size: 15px; margin-bottom: 4px; }
+    #info span { color: #aebbd0; }
+  </style>
+  <script type="importmap">
+    { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    } }
+  </script>
+</head>
+<body>
+  <div id="info"><strong>Human rig</strong><span>Drag to orbit · Scroll to zoom<br>Articulated THREE.Bone hierarchy with visible joint markers</span></div>
+  <canvas id="scene"></canvas>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
