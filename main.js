@@ -155,8 +155,14 @@ export function createHumanRig(options = {}) {
       // forward/backward pendulum motion without returning them to a T-pose.
       for (const [side, phase] of [["left", leftPhase], ["right", rightPhase]]) {
         const sideSign = side === "left" ? -1 : 1;
+        const armSwing = Math.sin(phase);
+
+        // Shoulder drives the main pendulum swing; the elbow adds a gentle,
+        // continuously varying flex so the forearm follows through smoothly.
         joints[side + "Shoulder"].rotation.y =
-          sideSign * Math.sin(phase) * 0.58 * amplitude;
+          sideSign * armSwing * 0.58 * amplitude;
+        const elbowFlex = 0.10 + (0.5 + 0.5 * Math.cos(phase)) * 0.20 * amplitude;
+        joints[side + "Elbow"].rotation.z = -sideSign * elbowFlex;
       }
 
       // Small torso counter-rotation and vertical gait bounce.
