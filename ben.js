@@ -82,7 +82,7 @@ export function createBen({ createHumanRig }) {
     new THREE.Vector2(0.185, 0.45),
     new THREE.Vector2(0.125, 0.49)
   ];
-  const shirtBody = add(spine, new THREE.LatheGeometry(shirtProfile, 32),
+  const shirtBody = add(spine, new THREE.LatheGeometry(shirtProfile, 64),
     materials.shirtBlack, [0, 0.08, 0], [1, 1, 0.76], "BenShirtTorso");
   shirtBody.geometry.computeVertexNormals();
   // Shirt graphics are painted into the torso's UV texture, not separate meshes.
@@ -124,7 +124,7 @@ export function createBen({ createHumanRig }) {
   }
 
   // Neck and head.
-  sphere(joints.neck, materials.skin, [0, 0.055, 0], [0.105, 0.22, 0.105], "BenNeck");
+  sphere(joints.neck, materials.skin, [0, 0.075, 0], [0.112, 0.235, 0.11], "BenNeck");
   const head = joints.head;
   sphere(head, materials.skin, [0, 0.075, 0.015], [0.225, 0.285, 0.19], "BenHead");
   // A single curved face decal carries the eyes, brows and mouth as pixels.
@@ -270,7 +270,7 @@ export function createBen({ createHumanRig }) {
 
     capsule(shoulder, materials.green, [0, 0, 0], [sign * 0.145, 0, 0], 0.095, side + "TShirtSleeve");
     capsule(shoulder, materials.skin, [sign * 0.13, 0, 0], [sign * 0.30, -0.015, 0], 0.061, side + "UpperArm");
-    sphere(elbow, materials.skin, [0, 0, 0], [0.064, 0.064, 0.064], side + "ElbowJoint");
+    sphere(elbow, materials.skin, [0, 0, 0], [0.071, 0.071, 0.071], side + "ElbowJoint");
     capsule(elbow, materials.skin, [0, 0, 0], [sign * 0.27, -0.005, 0], 0.055, side + "Forearm");
     sphere(wrist, materials.skin, [0, 0, 0], [0.055, 0.06, 0.052], side + "Wrist");
     capsule(wrist, materials.skin, [0, 0, 0], [sign * 0.12, 0, 0], 0.065, side + "Hand");
@@ -287,19 +287,29 @@ export function createBen({ createHumanRig }) {
     new THREE.Vector2(0.175, -0.135),
     new THREE.Vector2(0.185, -0.055),
     new THREE.Vector2(0.175, 0.025),
-    new THREE.Vector2(0.145, 0.085)
+    new THREE.Vector2(0.145, 0.145)
   ];
-  add(hip, new THREE.LatheGeometry(pelvisProfile, 40), materials.pants,
+  add(hip, new THREE.LatheGeometry(pelvisProfile, 64), materials.pants,
     [0, -0.005, 0], [1, 1, 0.82], "BenWaist");
 
   const trouserSegment = (parent, topRadius, hemRadius, name) => {
-    const length = 0.43;
-    const geometry = new THREE.CylinderGeometry(topRadius, hemRadius, length, 20, 1, false);
-    const leg = add(parent, geometry, materials.pants, [0, -length / 2, 0], null, name);
-    // Soft rounded transitions at the hip/knee and hem keep the trousers
-    // from looking like hard-sided tubes while preserving the flared profile.
-    sphere(parent, materials.pants, [0, -0.025, 0], [topRadius, 0.055, topRadius * 0.88], name + "TopSeam");
-    sphere(parent, materials.pants, [0, -length + 0.018, 0], [hemRadius, 0.045, hemRadius * 0.88], name + "Hem");
+    // A softly rounded loft replaces the flat-ended cylinder and separate
+    // seam spheres. It extends slightly through each joint so the upper and
+    // lower trouser sections overlap instead of exposing a dark gap.
+    const halfLength = 0.235;
+    const profile = [
+      new THREE.Vector2(hemRadius * 0.72, -halfLength),
+      new THREE.Vector2(hemRadius * 0.96, -halfLength + 0.025),
+      new THREE.Vector2(hemRadius, -halfLength + 0.065),
+      new THREE.Vector2((topRadius + hemRadius) * 0.5, 0),
+      new THREE.Vector2(topRadius, halfLength - 0.065),
+      new THREE.Vector2(topRadius * 0.96, halfLength - 0.025),
+      new THREE.Vector2(topRadius * 0.72, halfLength)
+    ];
+    const geometry = new THREE.LatheGeometry(profile, 48);
+    geometry.computeVertexNormals();
+    const leg = add(parent, geometry, materials.pants, [0, -0.215, 0],
+      [1, 1, 0.88], name);
     return leg;
   };
 
@@ -310,7 +320,7 @@ export function createBen({ createHumanRig }) {
     const ankle = joints[side + "Ankle"];
     trouserSegment(thigh, 0.105, 0.115, side + "TrouserUpper");
     trouserSegment(knee, 0.092, 0.145, side + "TrouserLower");
-    sphere(ankle, materials.pants, [0, 0, 0], [0.105, 0.11, 0.11], side + "AnkleCuff");
+    sphere(ankle, materials.pants, [0, 0, 0], [0.108, 0.12, 0.108], side + "AnkleCuff");
 
     // Shoes point forward (+Z); each shoe is parented to the ankle.
     sphere(ankle, materials.shoeWhite, [0, -0.075, 0.105], [0.135, 0.075, 0.22], side + "Sneaker");
