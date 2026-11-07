@@ -69,17 +69,30 @@ export function createBen({ createHumanRig }) {
     return mesh;
   };
 
-  // Torso: the spine joint carries the shirt and its front details.
+  // Torso: use a shaped, tapered shirt volume instead of a round sphere.
+  // The shoulder line is broad, the waist is narrower, and the hem stays
+  // fairly straight like Ben's fitted Omniverse shirt.
   const spine = joints.spine;
-  sphere(spine, materials.shirtBlack, [0, 0.12, 0], [0.315, 0.405, 0.19], "BenShirtTorso");
-  add(spine, new THREE.BoxGeometry(0.115, 0.76, 0.018), materials.green,
-    [0, 0.105, 0.184], null, "GreenCenterStripe");
-  add(spine, new THREE.BoxGeometry(0.12, 0.18, 0.022), materials.green,
-    [0, 0.415, 0.17], null, "GreenCollar");
-  // Green side accents at the shoulder line.
+  const shirtProfile = [
+    new THREE.Vector2(0.225, -0.30),
+    new THREE.Vector2(0.255, -0.25),
+    new THREE.Vector2(0.270, -0.08),
+    new THREE.Vector2(0.265, 0.13),
+    new THREE.Vector2(0.245, 0.31),
+    new THREE.Vector2(0.185, 0.45),
+    new THREE.Vector2(0.125, 0.49)
+  ];
+  const shirtBody = add(spine, new THREE.LatheGeometry(shirtProfile, 32),
+    materials.shirtBlack, [0, 0.08, 0], [1, 1, 0.76], "BenShirtTorso");
+  shirtBody.geometry.computeVertexNormals();
+  add(spine, new THREE.BoxGeometry(0.105, 0.76, 0.016), materials.green,
+    [0, 0.105, 0.158], null, "GreenCenterStripe");
+  add(spine, new THREE.BoxGeometry(0.12, 0.17, 0.02), materials.green,
+    [0, 0.415, 0.145], null, "GreenCollar");
+  // Green sleeve seams follow the shoulder slope.
   for (const side of ["left", "right"]) {
     const s = side === "left" ? -1 : 1;
-    capsule(spine, materials.greenDark, [s * 0.19, 0.39, 0.015], [s * 0.29, 0.27, 0.02], 0.055, side + "ShoulderAccent");
+    capsule(spine, materials.greenDark, [s * 0.18, 0.39, 0.005], [s * 0.285, 0.27, 0.008], 0.038, side + "ShoulderAccent");
   }
 
   // A small canvas texture keeps the iconic 10 readable from the front.
@@ -197,15 +210,37 @@ export function createBen({ createHumanRig }) {
     sphere(wrist, materials.skin, [sign * 0.055, -0.045, 0.045], [0.035, 0.065, 0.04], side + "Thumb");
   }
 
-  // Waist and pants, with each leg's trousers following the thigh and knee.
-  sphere(joints.hip, materials.pants, [0, -0.09, 0], [0.255, 0.22, 0.16], "BenWaist");
+  // Waist and trousers: a tapered pelvis avoids the spherical diaper-like
+  // silhouette. The lower legs widen toward the hems to match Ben's flared jeans.
+  const hip = joints.hip;
+  const pelvisProfile = [
+    new THREE.Vector2(0.17, -0.29),
+    new THREE.Vector2(0.205, -0.24),
+    new THREE.Vector2(0.235, -0.12),
+    new THREE.Vector2(0.245, 0.015),
+    new THREE.Vector2(0.205, 0.12)
+  ];
+  add(hip, new THREE.LatheGeometry(pelvisProfile, 32), materials.pants,
+    [0, -0.09, 0], [1, 1, 0.76], "BenWaist");
+
+  const trouserSegment = (parent, topRadius, hemRadius, name) => {
+    const length = 0.43;
+    const geometry = new THREE.CylinderGeometry(topRadius, hemRadius, length, 20, 1, false);
+    const leg = add(parent, geometry, materials.pants, [0, -length / 2, 0], null, name);
+    // Soft rounded transitions at the hip/knee and hem keep the trousers
+    // from looking like hard-sided tubes while preserving the flared profile.
+    sphere(parent, materials.pants, [0, -0.025, 0], [topRadius, 0.055, topRadius * 0.88], name + "TopSeam");
+    sphere(parent, materials.pants, [0, -length + 0.018, 0], [hemRadius, 0.045, hemRadius * 0.88], name + "Hem");
+    return leg;
+  };
+
   for (const side of ["left", "right"]) {
     const sign = side === "left" ? -1 : 1;
     const thigh = joints[side + "Thigh"];
     const knee = joints[side + "Knee"];
     const ankle = joints[side + "Ankle"];
-    capsule(thigh, materials.pants, [0, 0, 0], [0, -0.43, 0], 0.105, side + "TrouserUpper");
-    capsule(knee, materials.pantsDark, [0, 0, 0], [0, -0.43, 0], 0.092, side + "TrouserLower");
+    trouserSegment(thigh, 0.105, 0.115, side + "TrouserUpper");
+    trouserSegment(knee, 0.092, 0.145, side + "TrouserLower");
     sphere(ankle, materials.pants, [0, 0, 0], [0.105, 0.11, 0.11], side + "AnkleCuff");
 
     // Shoes point forward (+Z); each shoe is parented to the ankle.
