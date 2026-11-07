@@ -69,20 +69,46 @@ export function createBen({ createHumanRig }) {
     return mesh;
   };
 
+  // Rounded lofts create tapered, continuous-looking forms instead of
+  // straight capsules with abrupt intersections at the joints.
+  const loftAlongX = (parent, material, length, startRadius, endRadius, sign, name) => {
+    const half = length * 0.5;
+    const r0 = startRadius;
+    const r1 = endRadius;
+    const profile = [
+      new THREE.Vector2(r0 * 0.68, -half),
+      new THREE.Vector2(r0 * 0.92, -half + 0.018),
+      new THREE.Vector2(r0, -half + 0.055),
+      new THREE.Vector2(r0 * 0.98 + r1 * 0.02, -half * 0.18),
+      new THREE.Vector2(r0 * 0.25 + r1 * 0.75, half * 0.18),
+      new THREE.Vector2(r1, half - 0.055),
+      new THREE.Vector2(r1 * 0.92, half - 0.018),
+      new THREE.Vector2(r1 * 0.68, half)
+    ];
+    const geometry = new THREE.LatheGeometry(profile, 40);
+    geometry.computeVertexNormals();
+    const mesh = add(parent, geometry, material,
+      [sign * half, 0, 0], null, name);
+    mesh.rotation.z = -sign * Math.PI / 2;
+    return mesh;
+  };
+
   // Torso: use a shaped, tapered shirt volume instead of a round sphere.
   // The shoulder line is broad, the waist is narrower, and the hem stays
   // fairly straight like Ben's fitted Omniverse shirt.
   const spine = joints.spine;
   const shirtProfile = [
-    new THREE.Vector2(0.225, -0.30),
-    new THREE.Vector2(0.255, -0.25),
-    new THREE.Vector2(0.270, -0.08),
-    new THREE.Vector2(0.265, 0.13),
-    new THREE.Vector2(0.245, 0.31),
-    new THREE.Vector2(0.185, 0.45),
-    new THREE.Vector2(0.125, 0.49)
+    new THREE.Vector2(0.205, -0.32),
+    new THREE.Vector2(0.235, -0.305),
+    new THREE.Vector2(0.252, -0.265),
+    new THREE.Vector2(0.260, -0.12),
+    new THREE.Vector2(0.275, 0.08),
+    new THREE.Vector2(0.285, 0.245),
+    new THREE.Vector2(0.265, 0.335),
+    new THREE.Vector2(0.215, 0.415),
+    new THREE.Vector2(0.145, 0.455)
   ];
-  const shirtBody = add(spine, new THREE.LatheGeometry(shirtProfile, 64),
+  const shirtBody = add(spine, new THREE.LatheGeometry(shirtProfile, 96),
     materials.shirtBlack, [0, 0.08, 0], [1, 1, 0.76], "BenShirtTorso");
   shirtBody.geometry.computeVertexNormals();
   // Shirt graphics are painted into the torso's UV texture, not separate meshes.
@@ -268,10 +294,13 @@ export function createBen({ createHumanRig }) {
     const elbow = joints[side + "Elbow"];
     const wrist = joints[side + "Wrist"];
 
-    capsule(shoulder, materials.green, [0, 0, 0], [sign * 0.145, 0, 0], 0.095, side + "TShirtSleeve");
-    capsule(shoulder, materials.skin, [sign * 0.13, 0, 0], [sign * 0.30, -0.015, 0], 0.061, side + "UpperArm");
-    sphere(elbow, materials.skin, [0, 0, 0], [0.071, 0.071, 0.071], side + "ElbowJoint");
-    capsule(elbow, materials.skin, [0, 0, 0], [sign * 0.27, -0.005, 0], 0.055, side + "Forearm");
+    // The sleeve, upper arm and forearm are softly tapered lofts. Their
+    // rounded ends deliberately overlap the hidden joint volumes to avoid
+    // the segmented toy-arm appearance while retaining elbow articulation.
+    loftAlongX(shoulder, materials.green, 0.235, 0.112, 0.096, sign, side + "TShirtSleeve");
+    loftAlongX(shoulder, materials.skin, 0.355, 0.074, 0.066, sign, side + "UpperArm");
+    sphere(elbow, materials.skin, [0, 0, 0], [0.073, 0.073, 0.073], side + "ElbowJoint");
+    loftAlongX(elbow, materials.skin, 0.325, 0.066, 0.059, sign, side + "Forearm");
     sphere(wrist, materials.skin, [0, 0, 0], [0.055, 0.06, 0.052], side + "Wrist");
     capsule(wrist, materials.skin, [0, 0, 0], [sign * 0.12, 0, 0], 0.065, side + "Hand");
     // Thumb nub gives the hand a readable silhouette.
@@ -282,34 +311,35 @@ export function createBen({ createHumanRig }) {
   // silhouette. The lower legs widen toward the hems to match Ben's flared jeans.
   const hip = joints.hip;
   const pelvisProfile = [
-    new THREE.Vector2(0.135, -0.235),
-    new THREE.Vector2(0.155, -0.205),
-    new THREE.Vector2(0.175, -0.135),
-    new THREE.Vector2(0.185, -0.055),
+    new THREE.Vector2(0.145, -0.255),
+    new THREE.Vector2(0.165, -0.225),
+    new THREE.Vector2(0.185, -0.145),
+    new THREE.Vector2(0.195, -0.045),
     new THREE.Vector2(0.175, 0.025),
     new THREE.Vector2(0.145, 0.145)
   ];
-  add(hip, new THREE.LatheGeometry(pelvisProfile, 64), materials.pants,
+  add(hip, new THREE.LatheGeometry(pelvisProfile, 96), materials.pants,
     [0, -0.005, 0], [1, 1, 0.82], "BenWaist");
 
   const trouserSegment = (parent, topRadius, hemRadius, name) => {
     // A softly rounded loft replaces the flat-ended cylinder and separate
     // seam spheres. It extends slightly through each joint so the upper and
     // lower trouser sections overlap instead of exposing a dark gap.
-    const halfLength = 0.235;
+    const halfLength = 0.255;
     const profile = [
-      new THREE.Vector2(hemRadius * 0.72, -halfLength),
-      new THREE.Vector2(hemRadius * 0.96, -halfLength + 0.025),
-      new THREE.Vector2(hemRadius, -halfLength + 0.065),
-      new THREE.Vector2((topRadius + hemRadius) * 0.5, 0),
-      new THREE.Vector2(topRadius, halfLength - 0.065),
-      new THREE.Vector2(topRadius * 0.96, halfLength - 0.025),
-      new THREE.Vector2(topRadius * 0.72, halfLength)
+      new THREE.Vector2(hemRadius * 0.88, -halfLength),
+      new THREE.Vector2(hemRadius * 0.97, -halfLength + 0.018),
+      new THREE.Vector2(hemRadius, -halfLength + 0.060),
+      new THREE.Vector2(hemRadius * 0.98, -halfLength * 0.35),
+      new THREE.Vector2(topRadius * 1.02, halfLength * 0.28),
+      new THREE.Vector2(topRadius, halfLength - 0.060),
+      new THREE.Vector2(topRadius * 0.97, halfLength - 0.018),
+      new THREE.Vector2(topRadius * 0.88, halfLength)
     ];
     const geometry = new THREE.LatheGeometry(profile, 48);
     geometry.computeVertexNormals();
     const leg = add(parent, geometry, materials.pants, [0, -0.215, 0],
-      [1, 1, 0.88], name);
+      [1, 1, 0.90], name);
     return leg;
   };
 
