@@ -307,7 +307,8 @@ export function createBen({ createHumanRig }) {
     geometry.setIndex(indices);
     geometry.computeVertexNormals();
     const material = new THREE.MeshStandardMaterial({
-      vertexColors: true, roughness: 0.88, metalness: 0
+      vertexColors: true, roughness: 0.88, metalness: 0,
+      side: THREE.DoubleSide
     });
     const body = new THREE.SkinnedMesh(geometry, material);
     body.name = "BenContinuousSkinnedBody";
@@ -316,6 +317,7 @@ export function createBen({ createHumanRig }) {
     group.add(body);
     group.updateMatrixWorld(true);
     body.bind(rig.skeleton);
+    body.normalizeSkinWeights();
     return body;
   };
 
