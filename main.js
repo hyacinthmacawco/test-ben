@@ -260,7 +260,7 @@ import("./ben.js").then(({ createBen }) => {
   humanRig = benCharacter.rig;
   scene.add(benCharacter.group);
   window.ben = benCharacter;
-  // The Ben character module exposes window.ben and window.humanRig after loading.
+  window.humanRig = humanRig;
 }).catch(error => {
   console.error("Could not load Ben character:", error);
 });
@@ -281,4 +281,3 @@ renderer.setAnimationLoop(() => {
   renderer.render(scene, camera);
 });
 
-window.humanRig = humanRig;
