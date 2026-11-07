@@ -358,9 +358,9 @@ export function createBen({ createHumanRig }) {
   numberContext.strokeStyle = "#123d28";
   numberContext.strokeText("10", 128, 98);
   numberContext.lineWidth = 8;
-  numberContext.strokeStyle = "#ffffff";
+  numberContext.strokeStyle = "#159b50";
   numberContext.strokeText("10", 128, 98);
-  numberContext.fillStyle = "#159b50";
+  numberContext.fillStyle = "#ffffff";
   numberContext.fillText("10", 128, 98);
   const numberTexture = new THREE.CanvasTexture(numberCanvas);
   numberTexture.colorSpace = THREE.SRGBColorSpace;
