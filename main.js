@@ -151,23 +151,43 @@ export function createHumanRig(options = {}) {
         joints[side + "Knee"].rotation.x = recovery * 0.78 * amplitude;
       }
 
-      // Swing the arms from the shoulder joints, opposite to the legs.
-      // The Z rotation above keeps the arms naturally lowered; Y adds the
-      // forward/backward pendulum motion without returning them to a T-pose.
-      for (const [side, phase] of [["left", leftPhase], ["right", rightPhase]]) {
-        const sideSign = side === "left" ? -1 : 1;
-        const armSwing = Math.sin(phase);
+      // Arms counter-swing against the legs. The arms hang down in their
+      // rest pose, so their pendulum motion must rotate around the body's
+      // lateral (world X) axis. Rotating around the old Y axis made them
+      // sweep sideways, which looked unlike a natural walk.
+      const worldX = new THREE.Vector3(1, 0, 0);
+      const worldSwing = new THREE.Quaternion();
+      const parentWorldInverse = new THREE.Quaternion();
+      const localDelta = new THREE.Quaternion();
 
-        // Shoulder drives the main pendulum swing; the elbow adds a gentle,
-        // continuously varying flex so the forearm follows through smoothly.
-        joints[side + "Shoulder"].rotation.y =
-          sideSign * armSwing * 0.58 * amplitude;
-        // Keep a clear baseline bend and flex further as the arm swings
-        // forward. The larger range makes the elbow articulation visible.
-        // Increase elbow flexion in phase with the shoulder's forward swing,
-        // rather than letting the forearm flex on the opposite half-cycle.
-        const elbowFlex = 0.38 + (0.5 + 0.5 * armSwing) * 0.42 * amplitude;
-        joints[side + "Elbow"].rotation.z = -sideSign * elbowFlex;
+      const applyWorldXSwing = (bone, restRotation, angle) => {
+        bone.parent.updateWorldMatrix(true, false);
+        bone.parent.getWorldQuaternion(parentWorldInverse).invert();
+        worldSwing.setFromAxisAngle(worldX, angle);
+        // Convert the desired world-space hinge rotation into the bone's
+        // parent-local space, preserving its authored resting orientation.
+        localDelta.copy(parentWorldInverse)
+          .multiply(worldSwing)
+          .multiply(bone.parent.getWorldQuaternion(new THREE.Quaternion()));
+        bone.quaternion.copy(localDelta).multiply(restRotation);
+      };
+
+      for (const [side, legPhase] of [["left", leftPhase], ["right", rightPhase]]) {
+        const armPhase = legPhase + Math.PI;
+        const armSwing = Math.sin(armPhase);
+        const shoulder = joints[side + "Shoulder"];
+        const elbow = joints[side + "Elbow"];
+        const shoulderRest = initialRotations.get(shoulder);
+        const elbowRest = initialRotations.get(elbow);
+
+        // Shoulder controls the whole arm's forward/backward pendulum.
+        applyWorldXSwing(shoulder, shoulderRest, armSwing * 0.48 * amplitude);
+
+        // The elbow hinges in the same forward-swing phase. Its flex changes
+        // gradually through the cycle, so the forearm follows the upper arm
+        // instead of looking like one rigid piece.
+        const elbowFlex = (0.12 + (0.5 + 0.5 * armSwing) * 0.34) * amplitude;
+        applyWorldXSwing(elbow, elbowRest, elbowFlex);
       }
 
       // Subtle torso counter-rotation; keep the body at a constant height.
