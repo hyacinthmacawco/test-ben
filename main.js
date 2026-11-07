@@ -220,7 +220,27 @@ export function createHumanRig(options = {}) {
 
 // Demo scene
 const canvas = document.querySelector("#scene");
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+
+// Export the current rendered view as a PNG when the photo button is pressed.
+const captureButton = document.querySelector("#capture-photo");
+captureButton.addEventListener("click", () => {
+  renderer.render(scene, camera);
+  canvas.toBlob(blob => {
+    if (!blob) {
+      console.error("Could not capture the scene image.");
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ben-scene-${new Date().toISOString().replace(/[:.]/g, "-")}.png`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }, "image/png");
+});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
