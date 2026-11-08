@@ -196,7 +196,7 @@ export function createBen({ createHumanRig }) {
       ? [mat.strap, mat.strap, mat.strap, mat.strap, mat.omnitrixFront, mat.strap]
       : mat.skin;
     box(wrist, side + "SkinHand", [0.155, 0.145, 0.17],
-      [sign * 0.075, 0, 0], handMaterials);
+      [sign * 0.075, side === "left" ? 0.025 : 0, 0], handMaterials);
   }
 
   // Articulated trouser legs and simple white trainers.
