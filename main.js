@@ -451,6 +451,7 @@ const fixedPhysicsStep = 1 / 60;
 let humanRig = null;
 let benCharacter = null;
 const supportingRigs = [];
+const allRigs = [];
 import("./ben.js").then(({ createBen }) => {
   benCharacter = createBen({ createHumanRig });
   humanRig = benCharacter.rig;
@@ -470,29 +471,31 @@ import("./ben.js").then(({ createBen }) => {
   physicsWorld.addBody(characterBody);
   window.ben = benCharacter;
   window.humanRig = humanRig;
-  const controlsPanel = document.querySelector("#rig-controls");
-  controlsPanel.addEventListener("click", event => {
-    const button = event.target.closest("button[data-animation]");
-    if (!button || !humanRig) return;
-    const animation = button.dataset.animation;
-    for (const rig of allRigs) {
-      if (animation === "walk") {
-        rig.stopAnimation();
-        rig.setWalking(true);
-      } else {
-        rig.playAnimation(animation);
-      }
-    }
-    if (animation === "jump" && characterBody) {
-      characterBody.velocity.y = 4.4;
-      characterBody.wakeUp();
-    }
-    controlsPanel.querySelectorAll("button").forEach(item => {
-      item.setAttribute("aria-pressed", String(item === button));
-    });
-  });
+
 }).catch(error => {
   console.error("Could not load Ben character:", error);
+});
+
+const controlsPanel = document.querySelector("#rig-controls");
+controlsPanel?.addEventListener("click", event => {
+  const button = event.target.closest("button[data-animation]");
+  if (!button) return;
+  const animation = button.dataset.animation;
+  for (const rig of allRigs) {
+    if (animation === "walk") {
+      rig.stopAnimation();
+      rig.setWalking(true);
+    } else {
+      rig.playAnimation(animation);
+    }
+  }
+  if (animation === "jump" && characterBody) {
+    characterBody.velocity.y = 4.4;
+    characterBody.wakeUp();
+  }
+  controlsPanel.querySelectorAll("button").forEach(item => {
+    item.setAttribute("aria-pressed", String(item === button));
+  });
 });
 
 // Companion models share the same articulated skeleton and animation update.
