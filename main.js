@@ -4,7 +4,6 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 /**
  * Build an articulated humanoid pivot rig with a procedural walk cycle.
- *
  * Main joints: hip, neck, two shoulders, two elbows, and two knees.
  * The clavicle bar sits directly below the neck and connects both shoulders.
  */
