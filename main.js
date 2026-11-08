@@ -150,7 +150,7 @@ export function createHumanRig(options = {}) {
       ]
     },
     punch: {
-      duration: 0.78,
+      duration: 1.5,
       loop: true,
       frames: [
         { at: 0, pose: {} },
