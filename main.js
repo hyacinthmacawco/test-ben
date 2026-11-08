@@ -178,7 +178,7 @@ export function createHumanRig(options = {}) {
         return false;
       }
       rig.resetPose();
-      activeAction = { name, startedAt: performance.now() / 1000 };
+      activeAction = { name, startedAt: null };
       walking = false;
       return true;
     },
@@ -189,6 +189,7 @@ export function createHumanRig(options = {}) {
     updateWalk(timeSeconds) {
       if (activeAction) {
         const clip = actionClips[activeAction.name];
+        if (activeAction.startedAt === null) activeAction.startedAt = timeSeconds;
         const elapsed = Math.max(0, timeSeconds - activeAction.startedAt);
         const t = Math.min(1, elapsed / clip.duration);
         let index = 0;
@@ -210,7 +211,10 @@ export function createHumanRig(options = {}) {
           const bv = b.pose[key] || {};
           for (const axis of ["x", "y", "z"]) {
             if (av[axis] !== undefined || bv[axis] !== undefined) {
-              joint.rotation[axis] = THREE.MathUtils.lerp(av[axis] || 0, bv[axis] || 0, eased);
+              const rest = initialRotations.get(joint)?.[axis] ?? 0;
+              const from = av[axis] !== undefined ? av[axis] : rest;
+              const to = bv[axis] !== undefined ? bv[axis] : rest;
+              joint.rotation[axis] = THREE.MathUtils.lerp(from, to, eased);
             }
           }
         }
