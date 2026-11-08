@@ -101,35 +101,28 @@ export function createBen({ createHumanRig }) {
     ctx.fillRect(0, 0, w, h);
   });
 
-  const watchFace = makeTexture(256, 256, (ctx, w, h) => {
-    ctx.clearRect(0, 0, w, h);
-    // Pale metallic face surround and a dark display, matching the supplied
-    // Omnitrix reference. The central green hourglass is a graphic, not geometry.
-    ctx.fillStyle = "#dce3dc";
-    ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = "#101713";
-    ctx.fillRect(24, 24, 208, 208);
-    ctx.fillStyle = "#079b4b";
+  const omnitrixTexture = makeTexture(512, 256, (ctx, w, h) => {
+    // The reference uses a muted olive/grey-green wrist band, not black.
+    ctx.fillStyle = "#68715d"; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = "#aeb8ae"; ctx.fillRect(150, 18, 212, 220);
+    ctx.fillStyle = "#171d20"; ctx.fillRect(169, 36, 174, 184);
+    ctx.fillStyle = "#477f42";
     ctx.beginPath();
-    ctx.moveTo(49, 52);
-    ctx.lineTo(207, 52);
-    ctx.lineTo(151, 116);
-    ctx.lineTo(207, 204);
-    ctx.lineTo(49, 204);
-    ctx.lineTo(105, 116);
-    ctx.closePath();
-    ctx.fill();
-    // Dark inset creates the characteristic open hourglass/waist shape.
-    ctx.fillStyle = "#101713";
+    ctx.moveTo(190, 55); ctx.lineTo(322, 55); ctx.lineTo(275, 116);
+    ctx.lineTo(322, 201); ctx.lineTo(190, 201); ctx.lineTo(237, 116);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#171d20";
     ctx.beginPath();
-    ctx.moveTo(91, 83);
-    ctx.lineTo(165, 83);
-    ctx.lineTo(132, 116);
-    ctx.lineTo(165, 173);
-    ctx.lineTo(91, 173);
-    ctx.lineTo(124, 116);
-    ctx.closePath();
-    ctx.fill();
+    ctx.moveTo(230, 79); ctx.lineTo(282, 79); ctx.lineTo(256, 112);
+    ctx.lineTo(282, 177); ctx.lineTo(230, 177); ctx.lineTo(256, 112);
+    ctx.closePath(); ctx.fill();
+    // Fine pale edging separates the faceplate from the band.
+    ctx.strokeStyle = "#d2d8d0"; ctx.lineWidth = 7;
+    ctx.strokeRect(150, 18, 212, 220);
+  });
+  const strapMaterial = new THREE.MeshStandardMaterial({ color: 0x68715d, roughness: 0.88 });
+  const omnitrixFrontMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffffff, map: omnitrixTexture, roughness: 0.62, metalness: 0.04
   });
 
   const mat = {
@@ -146,10 +139,8 @@ export function createBen({ createHumanRig }) {
     pantsDark: new THREE.MeshStandardMaterial({ color: 0x593522, roughness: 0.96 }),
     white: new THREE.MeshStandardMaterial({ color: 0xe7e9e2, roughness: 0.86 }),
     sole: new THREE.MeshStandardMaterial({ color: 0x252a29, roughness: 0.94 }),
-    watchGreen: new THREE.MeshStandardMaterial({ color: 0x078b43, roughness: 0.62 }),
-    watchFace: new THREE.MeshStandardMaterial({
-      map: watchFace, transparent: true, roughness: 0.48, metalness: 0.08
-    })
+    strap: strapMaterial,
+    omnitrixFront: omnitrixFrontMaterial
   };
 
   const box = (parent, name, size, position, material) => {
@@ -201,8 +192,11 @@ export function createBen({ createHumanRig }) {
     // Forearm and hand are centered on the actual elbow-to-wrist span.
     box(elbow, side + "SkinForearm", [Math.abs(wrist.position.x) + 0.035, 0.155, 0.175],
       [wrist.position.x * 0.5, wrist.position.y * 0.5, 0], mat.skin);
+    const handMaterials = side === "left"
+      ? [mat.strap, mat.strap, mat.strap, mat.strap, mat.omnitrixFront, mat.strap]
+      : mat.skin;
     box(wrist, side + "SkinHand", [0.155, 0.145, 0.17],
-      [sign * 0.075, 0, 0], mat.skin);
+      [sign * 0.075, 0, 0], handMaterials);
   }
 
   // Articulated trouser legs and simple white trainers.
@@ -227,27 +221,8 @@ export function createBen({ createHumanRig }) {
       [0, -0.035, 0.235], mat.green);
   }
 
-  // Omnitrix strap wraps around the wrist on all four sides; the watch
-  // housing sits over the dorsal strap while the rear band remains visible.
-  const watch = new THREE.Group();
-  watch.name = "Omnitrix";
-  watch.position.set(-0.005, 0.005, 0.085);
-  joints.leftWrist.add(watch);
-  const strap = new THREE.MeshStandardMaterial({ color: 0x17251d, roughness: 0.86 });
-  box(watch, "OmnitrixStrapTop", [0.19, 0.025, 0.19], [0, 0.082, -0.005], strap);
-  box(watch, "OmnitrixStrapBottom", [0.19, 0.025, 0.19], [0, -0.082, -0.005], strap);
-  box(watch, "OmnitrixStrapBack", [0.19, 0.14, 0.025], [0, 0, -0.092], strap);
-  box(watch, "OmnitrixStrapFrontSides", [0.19, 0.14, 0.025], [0, 0, 0.082], strap);
-  box(watch, "OmnitrixBody", [0.15, 0.17, 0.105], [0, 0, 0.105], mat.watchGreen);
-
-  const face = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.132, 0.132),
-    mat.watchFace
-  );
-  face.name = "OmnitrixTexturedFaceplate";
-  face.position.z = 0.1585;
-  face.castShadow = false;
-  watch.add(face);
+  // The Omnitrix is painted onto the existing left wrist cuboid: no separate
+  // watch case, strap meshes, or faceplate geometry.
 
   return { group, rig, joints };
 }
