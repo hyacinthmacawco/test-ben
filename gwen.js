@@ -45,31 +45,8 @@ export function createGwen({ createHumanRig }) {
     ctx.lineTo(222, 270); ctx.closePath(); ctx.fill();
   });
   const topFront = new THREE.MeshStandardMaterial({ color: 0xffffff, map: topTexture, roughness: 0.92 });
-  const hairTexture = makeTexture((ctx, w, h) => {
-    ctx.fillStyle = "#c94e1d"; ctx.fillRect(0, 0, w, h);
-    for (let x = -80; x < w + 80; x += 42) {
-      ctx.strokeStyle = x % 3 ? "#e8752b" : "#a83b19";
-      ctx.lineWidth = 13; ctx.beginPath(); ctx.moveTo(x, 0); ctx.quadraticCurveTo(x + 25, h * 0.5, x - 8, h); ctx.stroke();
-    }
-  });
-  const hairMat = new THREE.MeshStandardMaterial({ map: hairTexture, roughness: 0.95 });
-  const faceTexture = makeTexture((ctx, w, h) => {
-    ctx.fillStyle = "#e5b3a4"; ctx.fillRect(0, 0, w, h);
-    // A shallow, tapered fringe stays above the spectacle lenses and leaves
-    // the central face unobstructed.
-    ctx.fillStyle = "#d95b20";
-    ctx.beginPath();
-    ctx.moveTo(0, 0); ctx.lineTo(w, 0); ctx.lineTo(w, h * 0.18);
-    ctx.lineTo(w * 0.82, h * 0.15); ctx.lineTo(w * 0.70, h * 0.22);
-    ctx.lineTo(w * 0.57, h * 0.16); ctx.lineTo(w * 0.48, h * 0.23);
-    ctx.lineTo(w * 0.36, h * 0.16); ctx.lineTo(w * 0.22, h * 0.22);
-    ctx.lineTo(w * 0.12, h * 0.15); ctx.lineTo(0, h * 0.19);
-    ctx.closePath(); ctx.fill();
-  });
-  const faceFrontMat = new THREE.MeshStandardMaterial({
-    color: 0xffffff, map: faceTexture, roughness: 0.92
-  });
-  const skinFaceMat = new THREE.MeshStandardMaterial({ color: 0xe5b3a4, roughness: 0.9 });
+  const hairMat = mat.hair;
+  const skinFaceMat = mat.skin;
   const plaidTexture = makeTexture((ctx, w, h) => {
     ctx.fillStyle = "#244c83"; ctx.fillRect(0, 0, w, h);
     ctx.strokeStyle = "#8fb7d5"; ctx.lineWidth = 5;
@@ -99,7 +76,7 @@ export function createGwen({ createHumanRig }) {
 
   // Orange bob cut: crown plus long side locks and a layered fringe.
   const headMesh = box(joints.head, "GwenHead", [0.37, 0.42, 0.32], [0, 0.055, 0],
-    [hairMat, hairMat, hairMat, skinFaceMat, faceFrontMat, hairMat]);
+    [hairMat, hairMat, hairMat, skinFaceMat, skinFaceMat, hairMat]);
   rig.fitHeadToTorso(torso, headMesh);
 
   // Spectacles are the only facial detail: dark blue rims, blue-tinted lenses,
