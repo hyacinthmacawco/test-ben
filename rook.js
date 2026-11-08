@@ -17,8 +17,25 @@ export function createRook({ createHumanRig }) {
     boot: new THREE.MeshStandardMaterial({ color: 0x263f70, roughness: 0.82 }),
     sole: new THREE.MeshStandardMaterial({ color: 0x0d1322, roughness: 0.9 })
   };
-  const hairMaterial = mat.black;
   const faceMaterial = mat.face;
+  const makeHairTexture = (front = false) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 384; canvas.height = 384;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#10121b";
+    if (front) {
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(384, 0); ctx.lineTo(384, 100);
+      ctx.lineTo(320, 128); ctx.lineTo(258, 92); ctx.lineTo(192, 132);
+      ctx.lineTo(126, 92); ctx.lineTo(60, 126); ctx.lineTo(0, 98);
+      ctx.closePath(); ctx.fill();
+    } else ctx.fillRect(0, 0, 384, 384);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.anisotropy = 4;
+    return texture;
+  };
+  const frontHairMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: makeHairTexture(true), transparent: true, roughness: 0.95 });
+  const sideHairMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: makeHairTexture(false), roughness: 0.95 });
   const box = (p, n, s, pos, m) => {
     const o = new THREE.Mesh(new THREE.BoxGeometry(...s), m);
     o.name = n; o.position.set(...pos); o.castShadow = true; o.receiveShadow = true; p.add(o); return o;
@@ -30,10 +47,9 @@ export function createRook({ createHumanRig }) {
   box(joints.spine, "RookBlueChestPlate", [0.47, 0.43, 0.075], [0, 0.24, 0.19], mat.armor);
   box(joints.spine, "RookChestInset", [0.28, 0.20, 0.025], [0, 0.12, 0.235], mat.trim);
   box(joints.spine, "RookNeckArmour", [0.34, 0.13, 0.33], [0, 0.49, 0], mat.armorLight);
-  // Rook's dark scalp is textured onto the head surface; no separate crown,
-  // crest or ear blocks are used. The front remains a featureless face.
+  // Front fringe, side length and rear hair are all textures on the head mesh.
   const headMesh = box(joints.head, "RookHead", [0.39, 0.46, 0.34], [0, 0.055, 0],
-    [hairMaterial, hairMaterial, hairMaterial, faceMaterial, faceMaterial, hairMaterial]);
+    [sideHairMat, sideHairMat, mat.black, faceMaterial, frontHairMat, sideHairMat]);
   rig.fitHeadToTorso(torso, headMesh);
 
   for (const side of ["left", "right"]) {
