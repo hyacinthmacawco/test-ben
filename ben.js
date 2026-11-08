@@ -195,8 +195,11 @@ export function createBen({ createHumanRig }) {
     const knee = joints[side + "Knee"];
     const ankle = joints[side + "Ankle"];
 
-    box(thigh, side + "UpperTrouser", [0.18, 0.45, 0.21],
-      [0, -0.215, 0], mat.pants);
+    // Extend the upper trouser panel above the thigh pivot so it physically
+    // overlaps the waistband/pelvis. Keep its lower edge at the original
+    // position so the knee seam and lower-leg proportions do not change.
+    box(thigh, side + "UpperTrouser", [0.20, 0.56, 0.21],
+      [0, -0.16, 0], mat.pants);
     box(knee, side + "LowerTrouser", [0.17, 0.44, 0.20],
       [0, -0.215, 0], mat.pantsDark);
 
