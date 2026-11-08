@@ -178,11 +178,12 @@ export function createBen({ createHumanRig }) {
 
   // No neck mesh: the head remains attached directly to the neck bone.
   // Hair is painted onto the cuboid head's faces.
-  box(joints.head, "BenHead", [0.37, 0.42, 0.32],
+  const headMesh = box(joints.head, "BenHead", [0.37, 0.42, 0.32],
     [0, 0.055, 0], [
       mat.hairSide, mat.hairSide, mat.hairTop, mat.skin,
       mat.hairFront, mat.hairBack
     ]);
+  rig.fitHeadToTorso(torso, headMesh);
 
   // Sleeves are black with narrow green texture accents, matching Ben's shirt.
   for (const side of ["left", "right"]) {
