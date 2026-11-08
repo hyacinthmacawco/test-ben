@@ -17,14 +17,28 @@ export function createKevin({ createHumanRig }) {
     pants: new THREE.MeshStandardMaterial({ color: 0x17233b, roughness: 0.94 }),
     belt: new THREE.MeshStandardMaterial({ color: 0x303b42, roughness: 0.82 })
   };
+  const shirtCanvas = document.createElement("canvas");
+  shirtCanvas.width = 512; shirtCanvas.height = 640;
+  const shirtCtx = shirtCanvas.getContext("2d");
+  shirtCtx.fillStyle = "#10131a"; shirtCtx.fillRect(0, 0, 512, 640);
+  // Blue harness straps are part of the shirt artwork, not floating geometry.
+  shirtCtx.fillStyle = "#263e56";
+  shirtCtx.beginPath(); shirtCtx.moveTo(72, 0); shirtCtx.lineTo(142, 0);
+  shirtCtx.lineTo(265, 640); shirtCtx.lineTo(195, 640); shirtCtx.closePath(); shirtCtx.fill();
+  shirtCtx.beginPath(); shirtCtx.moveTo(370, 0); shirtCtx.lineTo(440, 0);
+  shirtCtx.lineTo(317, 640); shirtCtx.lineTo(247, 640); shirtCtx.closePath(); shirtCtx.fill();
+  const shirtTexture = new THREE.CanvasTexture(shirtCanvas);
+  shirtTexture.colorSpace = THREE.SRGBColorSpace;
+  shirtTexture.anisotropy = 4;
+  const shirtFront = new THREE.MeshStandardMaterial({ color: 0xffffff, map: shirtTexture, roughness: 0.92 });
   const box = (p, n, s, pos, m) => {
     const o = new THREE.Mesh(new THREE.BoxGeometry(...s), m);
     o.name = n; o.position.set(...pos); o.castShadow = true; o.receiveShadow = true; p.add(o); return o;
   };
 
-  box(joints.spine, "KevinBlackShirt", [0.49, 0.73, 0.30], [0, 0.15, 0], mat.shirt);
-  box(joints.spine, "KevinBlueStrapLeft", [0.075, 0.78, 0.035], [-0.17, 0.15, 0.17], mat.shirtBlue).rotation.z = -0.22;
-  box(joints.spine, "KevinBlueStrapRight", [0.075, 0.78, 0.035], [0.17, 0.15, 0.17], mat.shirtBlue).rotation.z = 0.22;
+  const torso = box(joints.spine, "KevinBlackShirt", [0.49, 0.73, 0.30], [0, 0.15, 0],
+    [mat.shirt, mat.shirt, mat.shirt, mat.shirt, shirtFront, mat.shirt]);
+  rig.fitToTorso(torso);
   box(joints.spine, "KevinNeckBand", [0.30, 0.11, 0.30], [0, 0.49, 0], mat.sleeveDark);
   box(joints.hip, "KevinBelt", [0.42, 0.12, 0.28], [0, 0.12, 0], mat.belt);
   box(joints.hip, "KevinDarkJeans", [0.43, 0.20, 0.28], [0, -0.025, 0], mat.pants);
@@ -33,25 +47,28 @@ export function createKevin({ createHumanRig }) {
   // Long, swept-back black hair; no facial features.
   box(joints.head, "KevinHairTop", [0.41, 0.18, 0.37], [0, 0.255, -0.015], mat.hair);
   box(joints.head, "KevinHairBack", [0.37, 0.36, 0.12], [0, 0.01, -0.17], mat.hair);
+  // Broad swept-back side locks; no detached pointed spikes.
   for (const sign of [-1, 1]) {
-    const spike = new THREE.Mesh(new THREE.ConeGeometry(0.105, 0.34, 5), mat.hair);
-    spike.name = "KevinSweptHairSpike";
-    spike.position.set(sign * 0.18, 0.10, -0.20);
-    spike.rotation.z = sign * 0.75;
-    spike.rotation.x = -0.55;
-    spike.castShadow = true;
-    joints.head.add(spike);
-    box(joints.head, "KevinSideHair", [0.10, 0.38, 0.22], [sign * 0.17, -0.02, -0.06], mat.hair);
+    const lock = box(joints.head, "KevinSideHair", [0.12, 0.31, 0.24],
+      [sign * 0.17, -0.025, -0.075], mat.hair);
+    lock.rotation.z = sign * 0.12;
   }
 
   for (const side of ["left", "right"]) {
     const sign = side === "left" ? -1 : 1;
-    box(joints[side + "Shoulder"], "KevinGrayShoulderArmor", [0.39, 0.24, 0.30], [sign * 0.145, 0, 0], mat.sleeve);
-    box(joints[side + "Shoulder"], "KevinShoulderBand", [0.37, 0.065, 0.31], [sign * 0.145, 0.075, 0], mat.sleeveDark);
-    box(joints[side + "Elbow"], "KevinGrayForearm", [0.32, 0.17, 0.19], [sign * 0.13, 0, 0], mat.sleeve);
-    box(joints[side + "Elbow"], "KevinForearmBand", [0.31, 0.055, 0.20], [sign * 0.13, -0.055, 0], mat.sleeveDark);
+    const shoulder = joints[side + "Shoulder"];
+    const elbow = joints[side + "Elbow"];
+    const wrist = joints[side + "Wrist"];
+    box(shoulder, "KevinGrayShoulderArmor", [Math.abs(elbow.position.x) + 0.06, 0.24, 0.30],
+      [elbow.position.x * 0.5, elbow.position.y * 0.5, 0], mat.sleeve);
+    box(shoulder, "KevinShoulderBand", [Math.abs(elbow.position.x) + 0.045, 0.065, 0.31],
+      [elbow.position.x * 0.5, 0.075, 0], mat.sleeveDark);
+    box(elbow, "KevinGrayForearm", [Math.abs(wrist.position.x) + 0.045, 0.17, 0.19],
+      [wrist.position.x * 0.5, wrist.position.y * 0.5, 0], mat.sleeve);
+    box(elbow, "KevinForearmBand", [Math.abs(wrist.position.x) + 0.04, 0.055, 0.20],
+      [wrist.position.x * 0.5, -0.055, 0], mat.sleeveDark);
     box(joints[side + "Wrist"], "KevinHand", [0.15, 0.14, 0.16], [sign * 0.075, 0, 0], mat.skin);
-    box(joints[side + "Thigh"], "KevinJeans", [0.21, 0.66, 0.22], [0, -0.10, 0], mat.pants);
+    box(joints[side + "Thigh"], "KevinJeans", [0.21, 0.62, 0.22], [0, -0.30, 0], mat.pants);
     box(joints[side + "Knee"], "KevinLowerJeans", [0.18, 0.44, 0.20], [0, -0.21, 0], mat.pants);
     box(joints[side + "Ankle"], "KevinBoot", [0.21, 0.16, 0.31], [0, -0.08, 0.07], mat.shirt);
   }
