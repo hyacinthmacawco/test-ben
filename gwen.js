@@ -53,6 +53,22 @@ export function createGwen({ createHumanRig }) {
     }
   });
   const hairMat = new THREE.MeshStandardMaterial({ map: hairTexture, roughness: 0.95 });
+  const faceTexture = makeTexture((ctx, w, h) => {
+    ctx.fillStyle = "#e5b3a4"; ctx.fillRect(0, 0, w, h);
+    // A shallow, tapered fringe stays above the spectacle lenses and leaves
+    // the central face unobstructed.
+    ctx.fillStyle = "#d95b20";
+    ctx.beginPath();
+    ctx.moveTo(0, 0); ctx.lineTo(w, 0); ctx.lineTo(w, h * 0.18);
+    ctx.lineTo(w * 0.82, h * 0.15); ctx.lineTo(w * 0.70, h * 0.22);
+    ctx.lineTo(w * 0.57, h * 0.16); ctx.lineTo(w * 0.48, h * 0.23);
+    ctx.lineTo(w * 0.36, h * 0.16); ctx.lineTo(w * 0.22, h * 0.22);
+    ctx.lineTo(w * 0.12, h * 0.15); ctx.lineTo(0, h * 0.19);
+    ctx.closePath(); ctx.fill();
+  });
+  const faceFrontMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff, map: faceTexture, roughness: 0.92
+  });
   const skinFaceMat = new THREE.MeshStandardMaterial({ color: 0xe5b3a4, roughness: 0.9 });
   const plaidTexture = makeTexture((ctx, w, h) => {
     ctx.fillStyle = "#244c83"; ctx.fillRect(0, 0, w, h);
@@ -83,7 +99,7 @@ export function createGwen({ createHumanRig }) {
 
   // Orange bob cut: crown plus long side locks and a layered fringe.
   const headMesh = box(joints.head, "GwenHead", [0.37, 0.42, 0.32], [0, 0.055, 0],
-    [hairMat, hairMat, hairMat, skinFaceMat, skinFaceMat, hairMat]);
+    [hairMat, hairMat, hairMat, skinFaceMat, faceFrontMat, hairMat]);
   rig.fitHeadToTorso(torso, headMesh);
 
   // Spectacles are the only facial detail: dark blue rims, blue-tinted lenses,
@@ -94,9 +110,7 @@ export function createGwen({ createHumanRig }) {
     box(joints.head, "GwenSpectacleBottom", [0.16, 0.014, 0.025], [sign * 0.088, 0.03, 0.18], mat.frame);
     box(joints.head, "GwenSpectacleOuter", [0.014, 0.11, 0.025], [sign * 0.166, 0.085, 0.18], mat.frame);
     box(joints.head, "GwenSpectacleInner", [0.014, 0.11, 0.025], [sign * 0.01, 0.085, 0.18], mat.frame);
-    box(joints.head, "GwenSpectacleTemple", [0.12, 0.018, 0.018], [sign * 0.22, 0.08, 0.02], mat.frame);
   }
-  box(joints.head, "GwenSpectacleBridge", [0.045, 0.016, 0.025], [0, 0.12, 0.18], mat.frame);
 
   for (const side of ["left", "right"]) {
     const sign = side === "left" ? -1 : 1;
