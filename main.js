@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import * as CANNON from "cannon-es";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 /**
@@ -125,12 +126,12 @@ export function createHumanRig(options = {}) {
   // Normalized keyframes are interpolated smoothly by updateWalk().
   const actionClips = {
     jump: {
-      duration: 1.05,
+      duration: 0.78,
       frames: [
         { at: 0, pose: {} },
-        { at: 0.18, pose: { hip: { x: 0.10 }, rootY: 0.02 } },
-        { at: 0.48, pose: { rootY: 0.62, hip: { x: -0.08 } } },
-        { at: 0.72, pose: { rootY: 0.42, hip: { x: 0.04 } } },
+        { at: 0.12, pose: { hip: { x: 0.12 } } },
+        { at: 0.42, pose: { hip: { x: -0.10 } } },
+        { at: 0.72, pose: { hip: { x: 0.04 } } },
         { at: 1, pose: {} }
       ]
     },
@@ -140,26 +141,24 @@ export function createHumanRig(options = {}) {
         { at: 0, pose: {} },
         // Keep the torso and legs upright; bend both elbows so the forearms
         // and hands point upward together, like a two-pronged pitchfork.
-        { at: 0.18, pose: { leftElbow: { z: -0.72 }, rightElbow: { z: 0.72 } } },
-        { at: 0.42, pose: { leftElbow: { z: -1.48 }, rightElbow: { z: 1.48 } } },
-        { at: 0.72, pose: { leftElbow: { z: -1.48 }, rightElbow: { z: 1.48 } } },
+        { at: 0.18, pose: { leftElbow: { x: -0.72 }, rightElbow: { x: 0.72 } } },
+        { at: 0.42, pose: { leftElbow: { x: -1.48 }, rightElbow: { x: 1.48 } } },
+        { at: 0.72, pose: { leftElbow: { x: -1.48 }, rightElbow: { x: 1.48 } } },
         { at: 1, pose: {} }
       ]
     },
     punch: {
-      duration: 1.2,
+      duration: 0.78,
       loop: true,
       frames: [
         { at: 0, pose: {} },
-        // Right fist first: pull sideways, drive forward, retract.
-        { at: 0.10, pose: { rightShoulder: { z: -1.08, x: 0.02 }, rightElbow: { x: -0.78 } } },
-        { at: 0.25, pose: { rightShoulder: { z: -1.34, x: -0.92 }, rightElbow: { x: -0.08 } } },
-        { at: 0.39, pose: { rightShoulder: { x: -0.30 }, rightElbow: { x: -0.58 } } },
-        // Then the left fist performs the same sideways-to-forward motion.
-        { at: 0.52, pose: { leftShoulder: { z: 1.08, x: 0.02 }, leftElbow: { x: -0.78 } } },
-        { at: 0.68, pose: { leftShoulder: { z: 1.34, x: -0.92 }, leftElbow: { x: -0.08 } } },
-        { at: 0.82, pose: { leftShoulder: { x: -0.30 }, leftElbow: { x: -0.58 } } },
-        { at: 1, pose: {} }
+        { at: 0.07, pose: { rightShoulder: { z: -1.42, x: 0.08 }, rightElbow: { x: -1.02 } } },
+        { at: 0.18, pose: { rightShoulder: { z: -1.58, x: -1.38 }, rightElbow: { x: -0.02 } } },
+        { at: 0.28, pose: { rightShoulder: { x: -0.42 }, rightElbow: { x: -0.72 } } },
+        { at: 0.39, pose: { leftShoulder: { z: 1.42, x: 0.08 }, leftElbow: { x: -1.02 } } },
+        { at: 0.50, pose: { leftShoulder: { z: 1.58, x: -1.38 }, leftElbow: { x: -0.02 } } },
+        { at: 0.62, pose: { leftShoulder: { x: -0.42 }, leftElbow: { x: -0.72 } } },
+        { at: 0.78, pose: {} }
       ]
     }
   };
@@ -231,7 +230,7 @@ export function createHumanRig(options = {}) {
         // Jump keeps the ordinary walk gait running underneath the vertical
         // root arc, rather than freezing the arms and legs in a separate pose.
         if (activeAction.name === "jump") {
-          const cycle = timeSeconds * speed * Math.PI * 2;
+          const cycle = timeSeconds * speed * 0.55 * Math.PI * 2;
           for (const [side, phase] of [["left", cycle], ["right", cycle + Math.PI]]) {
             const swing = Math.sin(phase);
             const recovery = Math.max(0, Math.cos(phase));
@@ -241,8 +240,8 @@ export function createHumanRig(options = {}) {
             const elbow = joints[side + "Elbow"];
             thigh.rotation.x = (initialRotations.get(thigh)?.x || 0) + swing * 0.62 * amplitude;
             knee.rotation.x = (initialRotations.get(knee)?.x || 0) + recovery * 0.52 * amplitude;
-            shoulder.rotation.x = (initialRotations.get(shoulder)?.x || 0) - swing * 0.32 * amplitude;
-            elbow.rotation.x = (initialRotations.get(elbow)?.x || 0) - (0.12 + recovery * 0.20) * amplitude;
+            shoulder.rotation.x = (initialRotations.get(shoulder)?.x || 0) - swing * 0.68 * amplitude;
+            elbow.rotation.x = (initialRotations.get(elbow)?.x || 0) - (0.16 + recovery * 0.28) * amplitude;
           }
         }
 
@@ -390,6 +389,23 @@ floor.receiveShadow = true;
 scene.add(floor);
 scene.add(new THREE.GridHelper(12, 24, 0x53657b, 0x354354));
 
+// Lightweight rigid-body physics: a static floor and a dynamic capsule collider.
+// The detailed limbs remain animated by the Three.js rig; the capsule provides
+// stable ground contact and collision against future rigid-body props.
+const physicsWorld = new CANNON.World({ gravity: new CANNON.Vec3(0, -9.82, 0) });
+physicsWorld.broadphase = new CANNON.SAPBroadphase(physicsWorld);
+physicsWorld.allowSleep = true;
+physicsWorld.solver.iterations = 8;
+const floorBody = new CANNON.Body({ mass: 0 });
+floorBody.addShape(new CANNON.Plane());
+floorBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
+floorBody.position.set(0, 0.02, 0);
+physicsWorld.addBody(floorBody);
+
+let characterBody = null;
+const characterColliderOffset = 0.815;
+const fixedPhysicsStep = 1 / 60;
+
 // Load Ben's character mesh and attach it to the articulated rig.
 let humanRig = null;
 let benCharacter = null;
@@ -397,6 +413,18 @@ import("./ben.js").then(({ createBen }) => {
   benCharacter = createBen({ createHumanRig });
   humanRig = benCharacter.rig;
   scene.add(benCharacter.group);
+
+  characterBody = new CANNON.Body({
+    mass: 65,
+    position: new CANNON.Vec3(0, characterColliderOffset, 0),
+    fixedRotation: true,
+    linearDamping: 0.08,
+    angularDamping: 1
+  });
+  characterBody.addShape(new CANNON.Cylinder(0.22, 0.22, 1.15, 10));
+  characterBody.addShape(new CANNON.Sphere(0.22), new CANNON.Vec3(0, 0.575, 0));
+  characterBody.addShape(new CANNON.Sphere(0.22), new CANNON.Vec3(0, -0.575, 0));
+  physicsWorld.addBody(characterBody);
   window.ben = benCharacter;
   window.humanRig = humanRig;
   const controlsPanel = document.querySelector("#rig-controls");
@@ -412,6 +440,10 @@ import("./ben.js").then(({ createBen }) => {
       });
     } else {
       humanRig.playAnimation(animation);
+      if (animation === "jump" && characterBody) {
+        characterBody.velocity.y = 4.4;
+        characterBody.wakeUp();
+      }
       controlsPanel.querySelectorAll("button").forEach(item => {
         item.setAttribute("aria-pressed", String(item === button));
       });
@@ -431,8 +463,19 @@ function resize() {
 window.addEventListener("resize", resize);
 
 renderer.setAnimationLoop(() => {
-  const elapsed = clock.getElapsedTime();
+  const delta = Math.min(clock.getDelta(), 0.05);
+  const elapsed = clock.elapsedTime;
   if (humanRig) humanRig.updateWalk(elapsed);
+  if (characterBody) {
+    physicsWorld.step(fixedPhysicsStep, delta, 3);
+    if (benCharacter) {
+      benCharacter.group.position.set(
+        characterBody.position.x,
+        characterBody.position.y - characterColliderOffset,
+        characterBody.position.z
+      );
+    }
+  }
   controls.update();
   renderer.render(scene, camera);
 });
