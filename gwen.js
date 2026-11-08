@@ -20,6 +20,39 @@ export function createGwen({ createHumanRig }) {
     frame: new THREE.MeshStandardMaterial({ color: 0x173c67, roughness: 0.55, metalness: 0.12 }),
     lens: new THREE.MeshStandardMaterial({ color: 0x4e9db9, roughness: 0.35, metalness: 0.15 })
   };
+  const makeTexture = (draw) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 512; canvas.height = 640;
+    const ctx = canvas.getContext("2d");
+    draw(ctx, canvas.width, canvas.height);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.anisotropy = 4;
+    return texture;
+  };
+  const topTexture = makeTexture((ctx, w, h) => {
+    ctx.fillStyle = "#8ec9e8"; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = "#4d83a8";
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(130, 0); ctx.lineTo(180, 72);
+    ctx.lineTo(332, 72); ctx.lineTo(382, 0); ctx.lineTo(w, 0);
+    ctx.lineTo(w, 90); ctx.lineTo(340, 128); ctx.lineTo(172, 128);
+    ctx.lineTo(0, 90); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#d4e9f2";
+    ctx.beginPath(); ctx.moveTo(256, 220); ctx.lineTo(310, 270); ctx.lineTo(256, 320);
+    ctx.lineTo(202, 270); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#4d83a8";
+    ctx.beginPath(); ctx.moveTo(256, 238); ctx.lineTo(290, 270); ctx.lineTo(256, 302);
+    ctx.lineTo(222, 270); ctx.closePath(); ctx.fill();
+  });
+  const topFront = new THREE.MeshStandardMaterial({ color: 0xffffff, map: topTexture, roughness: 0.92 });
+  const hairTexture = (base, fill) => makeTexture((ctx, w, h) => {
+    ctx.fillStyle = base; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = fill; ctx.fillRect(0, 0, w, h * 0.78);
+  });
+  const hairFrontMat = new THREE.MeshStandardMaterial({ map: hairTexture("#e5b3a4", "#d95b20"), roughness: 0.95 });
+  const hairBackMat = new THREE.MeshStandardMaterial({ map: hairTexture("#e5b3a4", "#c94e1d"), roughness: 0.95 });
+  const hairSideMat = new THREE.MeshStandardMaterial({ map: hairTexture("#e5b3a4", "#d95b20"), roughness: 0.95 });
+  const hairTopMat = new THREE.MeshStandardMaterial({ color: 0xd95b20, roughness: 0.95 });
   const box = (p, n, s, pos, m) => {
     const o = new THREE.Mesh(new THREE.BoxGeometry(...s), m);
     o.name = n; o.position.set(...pos); o.castShadow = true; o.receiveShadow = true; p.add(o); return o;
@@ -29,8 +62,10 @@ export function createGwen({ createHumanRig }) {
     o.name = n; o.position.set(...pos); o.castShadow = true; p.add(o); return o;
   };
 
-  // Light-blue fitted top with darker collar and shoulder accents.
-  box(joints.spine, "GwenBlueTop", [0.47, 0.65, 0.29], [0, 0.16, 0], mat.shirt);
+  // Shirt graphic is painted into the front-face texture.
+  const torso = box(joints.spine, "GwenBlueTop", [0.47, 0.65, 0.29], [0, 0.16, 0],
+    [mat.shirt, mat.shirt, mat.shirt, mat.shirt, topFront, mat.shirt]);
+  rig.fitToTorso(torso);
   box(joints.spine, "GwenCollar", [0.22, 0.055, 0.30], [0, 0.475, 0], mat.shirtDark);
   box(joints.spine, "GwenChestEmblem", [0.19, 0.13, 0.012], [0, 0.25, 0.151], mat.shirtDark);
   box(joints.hip, "GwenSkirtWaist", [0.40, 0.13, 0.29], [0, 0.16, 0], mat.shirtDark);
@@ -45,7 +80,8 @@ export function createGwen({ createHumanRig }) {
   }
 
   // Orange bob cut: crown plus long side locks and a layered fringe.
-  box(joints.head, "GwenHead", [0.37, 0.42, 0.32], [0, 0.055, 0], mat.skin);
+  box(joints.head, "GwenHead", [0.37, 0.42, 0.32], [0, 0.055, 0],
+    [hairSideMat, hairSideMat, hairTopMat, mat.skin, hairFrontMat, hairBackMat]);
   box(joints.head, "GwenHairCap", [0.405, 0.19, 0.35], [0, 0.245, -0.005], mat.hair);
   box(joints.head, "GwenFringe", [0.37, 0.105, 0.035], [0, 0.205, 0.17], mat.hairLight);
   for (const side of ["left", "right"]) {
@@ -69,10 +105,15 @@ export function createGwen({ createHumanRig }) {
 
   for (const side of ["left", "right"]) {
     const sign = side === "left" ? -1 : 1;
-    box(joints[side + "Shoulder"], "GwenShortSleeve", [0.36, 0.19, 0.27], [sign * 0.14, 0, 0], mat.shirt);
-    box(joints[side + "Elbow"], "GwenForearm", [0.30, 0.14, 0.16], [sign * 0.13, 0, 0], mat.skin);
+    const shoulder = joints[side + "Shoulder"];
+    const elbow = joints[side + "Elbow"];
+    const wrist = joints[side + "Wrist"];
+    box(shoulder, "GwenShortSleeve", [Math.abs(elbow.position.x) + 0.035, 0.19, 0.27],
+      [elbow.position.x * 0.5, elbow.position.y * 0.5, 0], mat.shirt);
+    box(elbow, "GwenForearm", [Math.abs(wrist.position.x) + 0.035, 0.14, 0.16],
+      [wrist.position.x * 0.5, wrist.position.y * 0.5, 0], mat.skin);
     box(joints[side + "Wrist"], "GwenHand", [0.15, 0.14, 0.16], [sign * 0.075, 0, 0], mat.skin);
-    box(joints[side + "Thigh"], "GwenLeg", [0.19, 0.65, 0.20], [0, -0.10, 0], mat.skin);
+    box(joints[side + "Thigh"], "GwenLeg", [0.19, 0.62, 0.20], [0, -0.30, 0], mat.skin);
     box(joints[side + "Knee"], "GwenLowerLeg", [0.16, 0.44, 0.18], [0, -0.21, 0], mat.skin);
     box(joints[side + "Ankle"], "GwenWhiteBoot", [0.20, 0.42, 0.25], [0, -0.17, 0.015], mat.boot);
     box(joints[side + "Ankle"], "GwenBootSole", [0.22, 0.045, 0.30], [0, -0.39, 0.07], mat.sole);
