@@ -452,10 +452,12 @@ let humanRig = null;
 let benCharacter = null;
 const supportingRigs = [];
 const allRigs = [];
+let selectedAnimation = null;
 import("./ben.js").then(({ createBen }) => {
   benCharacter = createBen({ createHumanRig });
   humanRig = benCharacter.rig;
   allRigs.push(humanRig);
+  if (selectedAnimation) humanRig.playAnimation(selectedAnimation);
   scene.add(benCharacter.group);
 
   characterBody = new CANNON.Body({
@@ -481,6 +483,7 @@ controlsPanel?.addEventListener("click", event => {
   const button = event.target.closest("button[data-animation]");
   if (!button) return;
   const animation = button.dataset.animation;
+  selectedAnimation = animation;
   for (const rig of allRigs) {
     if (animation === "walk") {
       rig.stopAnimation();
@@ -512,6 +515,7 @@ for (const item of companionLoads) {
     scene.add(character.group);
     supportingRigs.push(character.rig);
     allRigs.push(character.rig);
+    if (selectedAnimation) character.rig.playAnimation(selectedAnimation);
     window[item.name.toLowerCase()] = character;
   }).catch(error => {
     console.error(`Could not load ${item.name} character:`, error);
