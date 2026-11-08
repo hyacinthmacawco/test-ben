@@ -22,6 +22,7 @@ export function createRook({ createHumanRig }) {
     const canvas = document.createElement("canvas");
     canvas.width = 384; canvas.height = 384;
     const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#c3d5d9"; ctx.fillRect(0, 0, 384, 384);
     ctx.fillStyle = "#10121b";
     if (front) {
       ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(384, 0); ctx.lineTo(384, 100);
@@ -34,7 +35,7 @@ export function createRook({ createHumanRig }) {
     texture.anisotropy = 4;
     return texture;
   };
-  const frontHairMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: makeHairTexture(true), transparent: true, roughness: 0.95 });
+  const frontHairMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: makeHairTexture(true), transparent: false, roughness: 0.95 });
   const sideHairMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: makeHairTexture(false), roughness: 0.95 });
   const box = (p, n, s, pos, m) => {
     const o = new THREE.Mesh(new THREE.BoxGeometry(...s), m);
