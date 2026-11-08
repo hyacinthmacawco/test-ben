@@ -128,29 +128,37 @@ export function createHumanRig(options = {}) {
       duration: 1.05,
       frames: [
         { at: 0, pose: {} },
-        { at: 0.18, pose: { hip: { x: 0.18 }, leftKnee: { x: 0.42 }, rightKnee: { x: 0.42 }, leftShoulder: { z: 0.10 }, rightShoulder: { z: -0.10 } } },
-        { at: 0.48, pose: { rootY: 0.62, hip: { x: -0.12 }, leftThigh: { x: -0.48 }, rightThigh: { x: -0.48 }, leftKnee: { x: 0.72 }, rightKnee: { x: 0.72 }, leftShoulder: { z: 0.34 }, rightShoulder: { z: -0.34 }, leftElbow: { x: -0.35 }, rightElbow: { x: -0.35 } } },
-        { at: 0.72, pose: { rootY: 0.42, leftThigh: { x: -0.25 }, rightThigh: { x: -0.25 }, leftKnee: { x: 0.48 }, rightKnee: { x: 0.48 } } },
+        { at: 0.18, pose: { hip: { x: 0.10 }, rootY: 0.02 } },
+        { at: 0.48, pose: { rootY: 0.62, hip: { x: -0.08 } } },
+        { at: 0.72, pose: { rootY: 0.42, hip: { x: 0.04 } } },
         { at: 1, pose: {} }
       ]
     },
     pickup: {
-      duration: 1.45,
+      duration: 0.9,
       frames: [
         { at: 0, pose: {} },
-        { at: 0.28, pose: { hip: { x: 0.30 }, spine: { x: 0.28 }, leftThigh: { x: 0.32 }, rightThigh: { x: 0.32 }, leftKnee: { x: 0.58 }, rightKnee: { x: 0.58 }, rightShoulder: { z: -0.18 }, rightElbow: { x: -0.35 } } },
-        { at: 0.58, pose: { hip: { x: 0.48 }, spine: { x: 0.42 }, leftThigh: { x: 0.42 }, rightThigh: { x: 0.42 }, leftKnee: { x: 0.82 }, rightKnee: { x: 0.82 }, rightShoulder: { z: -0.42 }, rightElbow: { x: -0.62 }, rightWrist: { x: -0.12 } } },
-        { at: 0.78, pose: { hip: { x: 0.38 }, spine: { x: 0.30 }, leftThigh: { x: 0.28 }, rightThigh: { x: 0.28 }, leftKnee: { x: 0.55 }, rightKnee: { x: 0.55 }, rightShoulder: { z: -0.22 }, rightElbow: { x: -0.42 } } },
+        // Keep the torso and legs upright; bend both elbows so the forearms
+        // and hands point upward together, like a two-pronged pitchfork.
+        { at: 0.18, pose: { leftElbow: { z: -0.72 }, rightElbow: { z: 0.72 } } },
+        { at: 0.42, pose: { leftElbow: { z: -1.48 }, rightElbow: { z: 1.48 } } },
+        { at: 0.72, pose: { leftElbow: { z: -1.48 }, rightElbow: { z: 1.48 } } },
         { at: 1, pose: {} }
       ]
     },
     punch: {
-      duration: 0.72,
+      duration: 1.2,
+      loop: true,
       frames: [
         { at: 0, pose: {} },
-        { at: 0.20, pose: { rightShoulder: { x: -0.18, z: -0.18 }, rightElbow: { x: -0.85 } } },
-        { at: 0.43, pose: { rightShoulder: { x: -1.12, z: -0.08 }, rightElbow: { x: -0.08 } } },
-        { at: 0.58, pose: { rightShoulder: { x: -0.42 }, rightElbow: { x: -0.52 } } },
+        // Right fist first: pull sideways, drive forward, retract.
+        { at: 0.10, pose: { rightShoulder: { z: -1.08, x: 0.02 }, rightElbow: { x: -0.78 } } },
+        { at: 0.25, pose: { rightShoulder: { z: -1.34, x: -0.92 }, rightElbow: { x: -0.08 } } },
+        { at: 0.39, pose: { rightShoulder: { x: -0.30 }, rightElbow: { x: -0.58 } } },
+        // Then the left fist performs the same sideways-to-forward motion.
+        { at: 0.52, pose: { leftShoulder: { z: 1.08, x: 0.02 }, leftElbow: { x: -0.78 } } },
+        { at: 0.68, pose: { leftShoulder: { z: 1.34, x: -0.92 }, leftElbow: { x: -0.08 } } },
+        { at: 0.82, pose: { leftShoulder: { x: -0.30 }, leftElbow: { x: -0.58 } } },
         { at: 1, pose: {} }
       ]
     }
@@ -191,7 +199,9 @@ export function createHumanRig(options = {}) {
         const clip = actionClips[activeAction.name];
         if (activeAction.startedAt === null) activeAction.startedAt = timeSeconds;
         const elapsed = Math.max(0, timeSeconds - activeAction.startedAt);
-        const t = Math.min(1, elapsed / clip.duration);
+        const t = clip.loop
+          ? (elapsed % clip.duration) / clip.duration
+          : Math.min(1, elapsed / clip.duration);
         let index = 0;
         while (index < clip.frames.length - 2 && t > clip.frames[index + 1].at) index++;
         const a = clip.frames[index];
@@ -218,7 +228,25 @@ export function createHumanRig(options = {}) {
             }
           }
         }
-        if (t >= 1) {
+        // Jump keeps the ordinary walk gait running underneath the vertical
+        // root arc, rather than freezing the arms and legs in a separate pose.
+        if (activeAction.name === "jump") {
+          const cycle = timeSeconds * speed * Math.PI * 2;
+          for (const [side, phase] of [["left", cycle], ["right", cycle + Math.PI]]) {
+            const swing = Math.sin(phase);
+            const recovery = Math.max(0, Math.cos(phase));
+            const thigh = joints[side + "Thigh"];
+            const knee = joints[side + "Knee"];
+            const shoulder = joints[side + "Shoulder"];
+            const elbow = joints[side + "Elbow"];
+            thigh.rotation.x = (initialRotations.get(thigh)?.x || 0) + swing * 0.62 * amplitude;
+            knee.rotation.x = (initialRotations.get(knee)?.x || 0) + recovery * 0.52 * amplitude;
+            shoulder.rotation.x = (initialRotations.get(shoulder)?.x || 0) - swing * 0.32 * amplitude;
+            elbow.rotation.x = (initialRotations.get(elbow)?.x || 0) - (0.12 + recovery * 0.20) * amplitude;
+          }
+        }
+
+        if (!clip.loop && t >= 1) {
           activeAction = null;
           rig.resetPose();
           walking = true;
