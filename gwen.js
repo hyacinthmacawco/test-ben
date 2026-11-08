@@ -56,6 +56,15 @@ export function createGwen({ createHumanRig }) {
     for (let x = 36; x <= w; x += 72) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
   });
   const plaidMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: plaidTexture, roughness: 0.92 });
+  // The sock is a printed region on the lower-leg surface, not a separate mesh.
+  const sockTexture = makeTexture((ctx, w, h) => {
+    ctx.fillStyle = "#e5b3a4"; ctx.fillRect(0, 0, w, h * 0.38);
+    ctx.fillStyle = "#dce7e9"; ctx.fillRect(0, h * 0.38, w, h * 0.62);
+    ctx.fillStyle = "#c8d8dc"; ctx.fillRect(0, h * 0.38, w, 10);
+  });
+  const sockLegMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff, map: sockTexture, roughness: 0.9
+  });
   const box = (p, n, s, pos, m) => {
     const o = new THREE.Mesh(new THREE.BoxGeometry(...s), m);
     o.name = n; o.position.set(...pos); o.castShadow = true; o.receiveShadow = true; p.add(o); return o;
@@ -125,9 +134,8 @@ export function createGwen({ createHumanRig }) {
       [wrist.position.x * 0.5, wrist.position.y * 0.5, 0], mat.skin);
     box(joints[side + "Wrist"], "GwenHand", [0.15, 0.14, 0.16], [sign * 0.075, 0, 0], mat.skin);
     box(joints[side + "Thigh"], "GwenPlaidSkirtLegTexture", [0.235, 0.53, 0.235], [0, -0.245, 0], plaidMat);
-    box(joints[side + "Knee"], "GwenLowerLeg", [0.16, 0.44, 0.18], [0, -0.21, 0], mat.skin);
+    box(joints[side + "Knee"], "GwenLowerLegWithSockTexture", [0.20, 0.44, 0.22], [0, -0.21, 0], sockLegMat);
     box(joints[side + "Knee"], "GwenPlaidBelowKnee", [0.235, 0.12, 0.235], [0, 0.015, 0], plaidMat);
-    box(joints[side + "Ankle"], "GwenWhiteBoot", [0.20, 0.42, 0.25], [0, -0.17, 0.015], mat.boot);
     box(joints[side + "Ankle"], "GwenBootSole", [0.22, 0.045, 0.30], [0, -0.39, 0.07], mat.sole);
   }
   return { group, rig, joints };
