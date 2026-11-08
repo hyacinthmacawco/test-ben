@@ -56,7 +56,8 @@ export function createHumanRig(options = {}) {
     // Rest pose: let the arms hang naturally instead of extending sideways.
     // The shoulder rotates around Z to bring the upper arm down alongside
     // the torso; a small elbow bend keeps the arm from looking rigid.
-    shoulder.rotation.z = -sign * 0.88;
+    // Near-vertical resting arms: 1.34 rad is close to straight down.
+    shoulder.rotation.z = -sign * 1.34;
     elbow.rotation.z = -sign * 0.12;
   }
 
@@ -119,6 +120,41 @@ export function createHumanRig(options = {}) {
   let walking = true;
   let speed = walkSpeed;
   let amplitude = walkAmplitude;
+  let activeAction = null;
+
+  // Normalized keyframes are interpolated smoothly by updateWalk().
+  const actionClips = {
+    jump: {
+      duration: 1.05,
+      frames: [
+        { at: 0, pose: {} },
+        { at: 0.18, pose: { hip: { x: 0.18 }, leftKnee: { x: 0.42 }, rightKnee: { x: 0.42 }, leftShoulder: { z: 0.10 }, rightShoulder: { z: -0.10 } } },
+        { at: 0.48, pose: { rootY: 0.62, hip: { x: -0.12 }, leftThigh: { x: -0.48 }, rightThigh: { x: -0.48 }, leftKnee: { x: 0.72 }, rightKnee: { x: 0.72 }, leftShoulder: { z: 0.34 }, rightShoulder: { z: -0.34 }, leftElbow: { x: -0.35 }, rightElbow: { x: -0.35 } } },
+        { at: 0.72, pose: { rootY: 0.42, leftThigh: { x: -0.25 }, rightThigh: { x: -0.25 }, leftKnee: { x: 0.48 }, rightKnee: { x: 0.48 } } },
+        { at: 1, pose: {} }
+      ]
+    },
+    pickup: {
+      duration: 1.45,
+      frames: [
+        { at: 0, pose: {} },
+        { at: 0.28, pose: { hip: { x: 0.30 }, spine: { x: 0.28 }, leftThigh: { x: 0.32 }, rightThigh: { x: 0.32 }, leftKnee: { x: 0.58 }, rightKnee: { x: 0.58 }, rightShoulder: { z: -0.18 }, rightElbow: { x: -0.35 } } },
+        { at: 0.58, pose: { hip: { x: 0.48 }, spine: { x: 0.42 }, leftThigh: { x: 0.42 }, rightThigh: { x: 0.42 }, leftKnee: { x: 0.82 }, rightKnee: { x: 0.82 }, rightShoulder: { z: -0.42 }, rightElbow: { x: -0.62 }, rightWrist: { x: -0.12 } } },
+        { at: 0.78, pose: { hip: { x: 0.38 }, spine: { x: 0.30 }, leftThigh: { x: 0.28 }, rightThigh: { x: 0.28 }, leftKnee: { x: 0.55 }, rightKnee: { x: 0.55 }, rightShoulder: { z: -0.22 }, rightElbow: { x: -0.42 } } },
+        { at: 1, pose: {} }
+      ]
+    },
+    punch: {
+      duration: 0.72,
+      frames: [
+        { at: 0, pose: {} },
+        { at: 0.20, pose: { rightShoulder: { x: -0.18, z: -0.18 }, rightElbow: { x: -0.85 } } },
+        { at: 0.43, pose: { rightShoulder: { x: -1.12, z: -0.08 }, rightElbow: { x: -0.08 } } },
+        { at: 0.58, pose: { rightShoulder: { x: -0.42 }, rightElbow: { x: -0.52 } } },
+        { at: 1, pose: {} }
+      ]
+    }
+  };
 
   const rig = {
     group: root,
@@ -136,7 +172,55 @@ export function createHumanRig(options = {}) {
     setWalkSpeed(value) {
       speed = Math.max(0, Number(value) || 0);
     },
+    playAnimation(name) {
+      if (!actionClips[name]) {
+        console.warn("Unknown rig animation:", name);
+        return false;
+      }
+      rig.resetPose();
+      activeAction = { name, startedAt: performance.now() / 1000 };
+      walking = false;
+      return true;
+    },
+    stopAnimation() {
+      activeAction = null;
+      rig.resetPose();
+    },
     updateWalk(timeSeconds) {
+      if (activeAction) {
+        const clip = actionClips[activeAction.name];
+        const elapsed = Math.max(0, timeSeconds - activeAction.startedAt);
+        const t = Math.min(1, elapsed / clip.duration);
+        let index = 0;
+        while (index < clip.frames.length - 2 && t > clip.frames[index + 1].at) index++;
+        const a = clip.frames[index];
+        const b = clip.frames[Math.min(index + 1, clip.frames.length - 1)];
+        const span = Math.max(0.0001, b.at - a.at);
+        const f = THREE.MathUtils.clamp((t - a.at) / span, 0, 1);
+        const eased = f * f * (3 - 2 * f);
+        const keys = new Set([...Object.keys(a.pose), ...Object.keys(b.pose)]);
+        for (const key of keys) {
+          if (key === "rootY") {
+            root.position.y = THREE.MathUtils.lerp(a.pose.rootY || 0, b.pose.rootY || 0, eased);
+            continue;
+          }
+          const joint = joints[key];
+          if (!joint) continue;
+          const av = a.pose[key] || {};
+          const bv = b.pose[key] || {};
+          for (const axis of ["x", "y", "z"]) {
+            if (av[axis] !== undefined || bv[axis] !== undefined) {
+              joint.rotation[axis] = THREE.MathUtils.lerp(av[axis] || 0, bv[axis] || 0, eased);
+            }
+          }
+        }
+        if (t >= 1) {
+          activeAction = null;
+          rig.resetPose();
+          walking = true;
+        }
+        return;
+      }
       if (!walking) return;
 
       const cycle = timeSeconds * speed * Math.PI * 2;
@@ -283,6 +367,24 @@ import("./ben.js").then(({ createBen }) => {
   scene.add(benCharacter.group);
   window.ben = benCharacter;
   window.humanRig = humanRig;
+  const controlsPanel = document.querySelector("#rig-controls");
+  controlsPanel.addEventListener("click", event => {
+    const button = event.target.closest("button[data-animation]");
+    if (!button || !humanRig) return;
+    const animation = button.dataset.animation;
+    if (animation === "walk") {
+      humanRig.stopAnimation();
+      humanRig.setWalking(true);
+      controlsPanel.querySelectorAll("button").forEach(item => {
+        item.setAttribute("aria-pressed", String(item === button));
+      });
+    } else {
+      humanRig.playAnimation(animation);
+      controlsPanel.querySelectorAll("button").forEach(item => {
+        item.setAttribute("aria-pressed", String(item === button));
+      });
+    }
+  });
 }).catch(error => {
   console.error("Could not load Ben character:", error);
 });
