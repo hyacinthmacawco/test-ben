@@ -5,6 +5,7 @@ import * as THREE from "three";
  * The skeleton and animation remain in main.js. Clothing graphics, hair and
  * the Omnitrix face are drawn into textures rather than built from overlays.
  */
+
 export function createBen({ createHumanRig }) {
   if (typeof createHumanRig !== "function") {
     throw new TypeError("createBen requires the createHumanRig rig factory.");
