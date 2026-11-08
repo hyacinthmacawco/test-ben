@@ -17,6 +17,19 @@ export function createRook({ createHumanRig }) {
     boot: new THREE.MeshStandardMaterial({ color: 0x263f70, roughness: 0.82 }),
     sole: new THREE.MeshStandardMaterial({ color: 0x0d1322, roughness: 0.9 })
   };
+  const hairCanvas = document.createElement("canvas");
+  hairCanvas.width = 512; hairCanvas.height = 512;
+  const hairCtx = hairCanvas.getContext("2d");
+  hairCtx.fillStyle = "#10121b"; hairCtx.fillRect(0,0,512,512);
+  for (let x=-100; x<620; x+=58) {
+    hairCtx.strokeStyle = x%3 ? "#26334f" : "#080a12";
+    hairCtx.lineWidth = 18; hairCtx.beginPath(); hairCtx.moveTo(x,0);
+    hairCtx.quadraticCurveTo(x+20,260,x-25,512); hairCtx.stroke();
+  }
+  const hairTexture = new THREE.CanvasTexture(hairCanvas);
+  hairTexture.colorSpace = THREE.SRGBColorSpace;
+  const hairMaterial = new THREE.MeshStandardMaterial({ map: hairTexture, roughness: 0.92 });
+  const faceMaterial = new THREE.MeshStandardMaterial({ color: 0xc3d5d9, roughness: 0.9 });
   const box = (p, n, s, pos, m) => {
     const o = new THREE.Mesh(new THREE.BoxGeometry(...s), m);
     o.name = n; o.position.set(...pos); o.castShadow = true; o.receiveShadow = true; p.add(o); return o;
@@ -28,16 +41,11 @@ export function createRook({ createHumanRig }) {
   box(joints.spine, "RookBlueChestPlate", [0.47, 0.43, 0.075], [0, 0.24, 0.19], mat.armor);
   box(joints.spine, "RookChestInset", [0.28, 0.20, 0.025], [0, 0.12, 0.235], mat.trim);
   box(joints.spine, "RookNeckArmour", [0.34, 0.13, 0.33], [0, 0.49, 0], mat.armorLight);
-  box(joints.hip, "RookArmouredWaist", [0.45, 0.27, 0.31], [0, 0.02, 0], mat.black);
-  box(joints.hip, "RookBeltFront", [0.34, 0.12, 0.035], [0, 0.06, 0.17], mat.armor);
-
-  // Featureless pale-blue face and dark blue head crest/helmet.
-  box(joints.head, "RookHead", [0.39, 0.46, 0.34], [0, 0.055, 0], mat.face);
-  box(joints.head, "RookDarkCrown", [0.40, 0.19, 0.36], [0, 0.255, -0.005], mat.black);
-  box(joints.head, "RookBlueCrest", [0.13, 0.22, 0.37], [0, 0.30, 0.02], mat.armor);
-  for (const sign of [-1, 1]) {
-    box(joints.head, "RookJawSide", [0.09, 0.24, 0.30], [sign * 0.15, -0.10, 0.015], mat.face);
-  }
+  // Rook's dark scalp is textured onto the head surface; no separate crown,
+  // crest or ear blocks are used. The front remains a featureless face.
+  const headMesh = box(joints.head, "RookHead", [0.39, 0.46, 0.34], [0, 0.055, 0],
+    [hairMaterial, hairMaterial, hairMaterial, faceMaterial, faceMaterial, hairMaterial]);
+  rig.fitHeadToTorso(torso, headMesh);
 
   for (const side of ["left", "right"]) {
     const sign = side === "left" ? -1 : 1;
