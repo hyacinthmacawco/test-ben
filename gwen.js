@@ -45,8 +45,30 @@ export function createGwen({ createHumanRig }) {
     ctx.lineTo(222, 270); ctx.closePath(); ctx.fill();
   });
   const topFront = new THREE.MeshStandardMaterial({ color: 0xffffff, map: topTexture, roughness: 0.92 });
-  const hairMat = mat.hair;
   const skinFaceMat = mat.skin;
+  const hairTexture = makeTexture((ctx, w, h) => {
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = "#d95b20";
+    // Front fringe only: a clean hairline that stays above the glasses.
+    ctx.beginPath();
+    ctx.moveTo(0, 0); ctx.lineTo(w, 0); ctx.lineTo(w, h * 0.24);
+    ctx.lineTo(w * 0.82, h * 0.29); ctx.lineTo(w * 0.68, h * 0.22);
+    ctx.lineTo(w * 0.53, h * 0.31); ctx.lineTo(w * 0.38, h * 0.23);
+    ctx.lineTo(w * 0.20, h * 0.30); ctx.lineTo(0, h * 0.23);
+    ctx.closePath(); ctx.fill();
+  });
+  const hairSideTexture = makeTexture((ctx, w, h) => {
+    ctx.fillStyle = "#d95b20"; ctx.fillRect(0, 0, w, h);
+    // Solid bob-length side hair with a slightly tapered lower edge.
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = "#d95b20";
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(w, 0);
+    ctx.lineTo(w, h * 0.90); ctx.lineTo(w * 0.72, h);
+    ctx.lineTo(w * 0.28, h); ctx.lineTo(0, h * 0.90);
+    ctx.closePath(); ctx.fill();
+  });
+  const hairFrontMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: hairTexture, transparent: true, roughness: 0.95 });
+  const hairSideMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: hairSideTexture, roughness: 0.95 });
   const plaidTexture = makeTexture((ctx, w, h) => {
     ctx.fillStyle = "#244c83"; ctx.fillRect(0, 0, w, h);
     ctx.strokeStyle = "#8fb7d5"; ctx.lineWidth = 5;
@@ -83,36 +105,10 @@ export function createGwen({ createHumanRig }) {
   // Plaid skirt pattern is applied directly to the upper-leg surfaces; no
   // separate skirt or hip cuboid is added to the silhouette.
 
-  // Plain orange hair: a shaped front fringe and long side panels give
-  // Gwen a recognizable bob silhouette without using hair textures.
+  // Hair is painted directly onto the head's front, side, top and rear faces.
   const headMesh = box(joints.head, "GwenHead", [0.37, 0.42, 0.32], [0, 0.055, 0],
-    [hairMat, hairMat, hairMat, skinFaceMat, skinFaceMat, hairMat]);
+    [hairSideMat, hairSideMat, mat.hair, mat.skin, hairFrontMat, mat.hair]);
   rig.fitHeadToTorso(torso, headMesh);
-
-  const fringeShape = new THREE.Shape();
-  fringeShape.moveTo(-0.185, 0.265);
-  fringeShape.lineTo(0.185, 0.265);
-  fringeShape.lineTo(0.185, 0.155);
-  fringeShape.lineTo(0.115, 0.135);
-  fringeShape.lineTo(0.055, 0.165);
-  fringeShape.lineTo(-0.005, 0.125);
-  fringeShape.lineTo(-0.075, 0.16);
-  fringeShape.lineTo(-0.135, 0.13);
-  fringeShape.lineTo(-0.185, 0.16);
-  fringeShape.closePath();
-  const fringe = new THREE.Mesh(new THREE.ShapeGeometry(fringeShape), mat.hair);
-  fringe.name = "GwenFrontFringe";
-  fringe.position.z = 0.166;
-  fringe.castShadow = true;
-  joints.head.add(fringe);
-
-  for (const sign of [-1, 1]) {
-    const sideLock = box(joints.head, "GwenLongSideHair", [0.105, 0.48, 0.335],
-      [sign * 0.175, -0.105, -0.005], mat.hair);
-    sideLock.rotation.z = -sign * 0.035;
-    box(joints.head, "GwenBobEnd", [0.11, 0.09, 0.34],
-      [sign * 0.175, -0.365, -0.005], mat.hair);
-  }
 
   // Keep only the spectacle frames and lenses; lower them clear of the fringe.
   for (const sign of [-1, 1]) {
