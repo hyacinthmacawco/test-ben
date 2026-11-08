@@ -102,20 +102,33 @@ export function createBen({ createHumanRig }) {
 
   const watchFace = makeTexture(256, 256, (ctx, w, h) => {
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = "#e7e9e2";
+    // Pale metallic face surround and a dark display, matching the supplied
+    // Omnitrix reference. The central green hourglass is a graphic, not geometry.
+    ctx.fillStyle = "#dce3dc";
     ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = "#171d1a";
-    ctx.fillRect(25, 25, 206, 206);
-    ctx.fillStyle = "#87958c";
-    ctx.fillRect(48, 48, 160, 160);
+    ctx.fillStyle = "#101713";
+    ctx.fillRect(24, 24, 208, 208);
     ctx.fillStyle = "#079b4b";
-    // Simplified hourglass-like Omnitrix symbol.
     ctx.beginPath();
-    ctx.moveTo(82, 70); ctx.lineTo(174, 70); ctx.lineTo(145, 128);
-    ctx.lineTo(174, 186); ctx.lineTo(82, 186); ctx.lineTo(111, 128);
-    ctx.closePath(); ctx.fill();
-    ctx.fillStyle = "#c8d2ca";
-    ctx.fillRect(120, 92, 16, 72);
+    ctx.moveTo(49, 52);
+    ctx.lineTo(207, 52);
+    ctx.lineTo(151, 116);
+    ctx.lineTo(207, 204);
+    ctx.lineTo(49, 204);
+    ctx.lineTo(105, 116);
+    ctx.closePath();
+    ctx.fill();
+    // Dark inset creates the characteristic open hourglass/waist shape.
+    ctx.fillStyle = "#101713";
+    ctx.beginPath();
+    ctx.moveTo(91, 83);
+    ctx.lineTo(165, 83);
+    ctx.lineTo(132, 116);
+    ctx.lineTo(165, 173);
+    ctx.lineTo(91, 173);
+    ctx.lineTo(124, 116);
+    ctx.closePath();
+    ctx.fill();
   });
 
   const mat = {
@@ -198,8 +211,8 @@ export function createBen({ createHumanRig }) {
     // Extend the upper trouser panel above the thigh pivot so it physically
     // overlaps the waistband/pelvis. Keep its lower edge at the original
     // position so the knee seam and lower-leg proportions do not change.
-    box(thigh, side + "UpperTrouser", [0.20, 0.56, 0.21],
-      [0, -0.16, 0], mat.pants);
+    box(thigh, side + "UpperTrouser", [0.205, 0.66, 0.215],
+      [0, -0.105, 0], mat.pants);
     box(knee, side + "LowerTrouser", [0.17, 0.44, 0.20],
       [0, -0.215, 0], mat.pantsDark);
 
