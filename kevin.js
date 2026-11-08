@@ -17,6 +17,19 @@ export function createKevin({ createHumanRig }) {
     pants: new THREE.MeshStandardMaterial({ color: 0x17233b, roughness: 0.94 }),
     belt: new THREE.MeshStandardMaterial({ color: 0x303b42, roughness: 0.82 })
   };
+  const hairCanvas = document.createElement("canvas");
+  hairCanvas.width = 512; hairCanvas.height = 512;
+  const hairCtx = hairCanvas.getContext("2d");
+  hairCtx.fillStyle = "#17151b"; hairCtx.fillRect(0,0,512,512);
+  for (let x=-80; x<600; x+=48) {
+    hairCtx.strokeStyle = x%3 ? "#302d38" : "#090a10";
+    hairCtx.lineWidth = 15; hairCtx.beginPath(); hairCtx.moveTo(x,0);
+    hairCtx.quadraticCurveTo(x+32,250,x-12,512); hairCtx.stroke();
+  }
+  const hairTexture = new THREE.CanvasTexture(hairCanvas);
+  hairTexture.colorSpace = THREE.SRGBColorSpace;
+  const hairMap = new THREE.MeshStandardMaterial({ map: hairTexture, roughness: 0.95 });
+  const faceMaterial = new THREE.MeshStandardMaterial({ color: 0xd0a18d, roughness: 0.92 });
   const shirtCanvas = document.createElement("canvas");
   shirtCanvas.width = 512; shirtCanvas.height = 640;
   const shirtCtx = shirtCanvas.getContext("2d");
@@ -40,19 +53,10 @@ export function createKevin({ createHumanRig }) {
     [mat.shirt, mat.shirt, mat.shirt, mat.shirt, shirtFront, mat.shirt]);
   rig.fitToTorso(torso);
   box(joints.spine, "KevinNeckBand", [0.30, 0.11, 0.30], [0, 0.49, 0], mat.sleeveDark);
-  box(joints.hip, "KevinBelt", [0.42, 0.12, 0.28], [0, 0.12, 0], mat.belt);
-  box(joints.hip, "KevinDarkJeans", [0.43, 0.20, 0.28], [0, -0.025, 0], mat.pants);
-
-  box(joints.head, "KevinHead", [0.37, 0.43, 0.32], [0, 0.055, 0], mat.skin);
-  // Long, swept-back black hair; no facial features.
-  box(joints.head, "KevinHairTop", [0.41, 0.18, 0.37], [0, 0.255, -0.015], mat.hair);
-  box(joints.head, "KevinHairBack", [0.37, 0.36, 0.12], [0, 0.01, -0.17], mat.hair);
-  // Broad swept-back side locks; no detached pointed spikes.
-  for (const sign of [-1, 1]) {
-    const lock = box(joints.head, "KevinSideHair", [0.12, 0.31, 0.24],
-      [sign * 0.17, -0.025, -0.075], mat.hair);
-    lock.rotation.z = sign * 0.12;
-  }
+  // Hair is a surface texture on the scalp/head mesh, not separate blocks.
+  const headMesh = box(joints.head, "KevinHead", [0.37, 0.43, 0.32], [0, 0.055, 0],
+    [hairMap, hairMap, hairMap, faceMaterial, faceMaterial, hairMap]);
+  rig.fitHeadToTorso(torso, headMesh);
 
   for (const side of ["left", "right"]) {
     const sign = side === "left" ? -1 : 1;
