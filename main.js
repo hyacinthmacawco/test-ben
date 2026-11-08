@@ -54,12 +54,12 @@ export function createHumanRig(options = {}) {
     const wrist = makeBone(side + "Wrist", elbow, [sign * 0.27, -0.005, 0]);
     makeBone(side + "HandEnd", wrist, [sign * 0.12, 0, 0], false);
 
-    // Rest pose: let the arms hang naturally instead of extending sideways.
-    // The shoulder rotates around Z to bring the upper arm down alongside
-    // the torso; a small elbow bend keeps the arm from looking rigid.
-    // Near-vertical resting arms: 1.34 rad is close to straight down.
-    shoulder.rotation.z = -sign * 1.34;
-    elbow.rotation.z = -sign * 0.12;
+    // Arm bones are authored along local +/-X. A 90-degree shoulder Z
+    // rotation points each upper arm straight down. This also aligns the
+    // elbow's local Y axis with the character's lateral axis, making Y the
+    // correct hinge axis for forearm motion in the front-facing Y/Z plane.
+    shoulder.rotation.z = -sign * (Math.PI / 2);
+    elbow.rotation.set(0, 0, 0);
   }
 
   // Legs: thigh 0.43, lower leg 0.43, ankle extension 0.12.
@@ -139,17 +139,18 @@ export function createHumanRig(options = {}) {
       duration: 0.9,
       frames: [
         { at: 0, pose: {} },
-        // The upper arms already hang down from the shoulder rest pose.
-        // Rotate each forearm in the character's front-facing plane (local Z),
-        // in opposite directions, so both hands point straight upward.
-        { at: 0.18, pose: { leftElbow: { z: -1.55 }, rightElbow: { z: 1.55 } } },
-        { at: 0.42, pose: { leftElbow: { z: -2.95 }, rightElbow: { z: 2.95 } } },
-        { at: 0.72, pose: { leftElbow: { z: -2.95 }, rightElbow: { z: 2.95 } } },
+        // The shoulder rest pose now establishes a true lateral elbow hinge.
+        // Rotate around local Y (not Z): this moves both forearms through the
+        // character's front-facing Y/Z plane, with mirrored signs so both
+        // hands travel in the same forward direction like a pitchfork.
+        { at: 0.18, pose: { leftElbow: { y: 0.85 }, rightElbow: { y: -0.85 } } },
+        { at: 0.42, pose: { leftElbow: { y: 1.55 }, rightElbow: { y: -1.55 } } },
+        { at: 0.72, pose: { leftElbow: { y: 1.55 }, rightElbow: { y: -1.55 } } },
         { at: 1, pose: {} }
       ]
     },
     punch: {
-      duration: 0.56,
+      duration: 0.88,
       loop: true,
       frames: [
         { at: 0, pose: {} },
