@@ -139,26 +139,27 @@ export function createHumanRig(options = {}) {
       duration: 0.9,
       frames: [
         { at: 0, pose: {} },
-        // Keep the torso and legs upright; bend both elbows so the forearms
-        // and hands point upward together, like a two-pronged pitchfork.
-        { at: 0.18, pose: { leftElbow: { x: -0.72 }, rightElbow: { x: 0.72 } } },
-        { at: 0.42, pose: { leftElbow: { x: -1.48 }, rightElbow: { x: 1.48 } } },
-        { at: 0.72, pose: { leftElbow: { x: -1.48 }, rightElbow: { x: 1.48 } } },
+        // The upper arms already hang down from the shoulder rest pose.
+        // Rotate each forearm in the character's front-facing plane (local Z),
+        // in opposite directions, so both hands point straight upward.
+        { at: 0.18, pose: { leftElbow: { z: -1.55 }, rightElbow: { z: 1.55 } } },
+        { at: 0.42, pose: { leftElbow: { z: -2.95 }, rightElbow: { z: 2.95 } } },
+        { at: 0.72, pose: { leftElbow: { z: -2.95 }, rightElbow: { z: 2.95 } } },
         { at: 1, pose: {} }
       ]
     },
     punch: {
-      duration: 0.78,
+      duration: 0.56,
       loop: true,
       frames: [
         { at: 0, pose: {} },
-        { at: 0.07, pose: { rightShoulder: { z: -1.42, x: 0.08 }, rightElbow: { x: -1.02 } } },
-        { at: 0.18, pose: { rightShoulder: { z: -1.58, x: -1.38 }, rightElbow: { x: -0.02 } } },
-        { at: 0.28, pose: { rightShoulder: { x: -0.42 }, rightElbow: { x: -0.72 } } },
-        { at: 0.39, pose: { leftShoulder: { z: 1.42, x: 0.08 }, leftElbow: { x: -1.02 } } },
-        { at: 0.50, pose: { leftShoulder: { z: 1.58, x: -1.38 }, leftElbow: { x: -0.02 } } },
-        { at: 0.62, pose: { leftShoulder: { x: -0.42 }, leftElbow: { x: -0.72 } } },
-        { at: 0.78, pose: {} }
+        { at: 0.045, pose: { rightShoulder: { z: -1.72, x: 0.12 }, rightElbow: { x: -1.22 } } },
+        { at: 0.13, pose: { rightShoulder: { z: -1.82, x: -1.68 }, rightElbow: { x: 0.04 } } },
+        { at: 0.21, pose: { rightShoulder: { x: -0.52 }, rightElbow: { x: -0.86 } } },
+        { at: 0.28, pose: { leftShoulder: { z: 1.72, x: 0.12 }, leftElbow: { x: -1.22 } } },
+        { at: 0.37, pose: { leftShoulder: { z: 1.82, x: -1.68 }, leftElbow: { x: 0.04 } } },
+        { at: 0.46, pose: { leftShoulder: { x: -0.52 }, leftElbow: { x: -0.86 } } },
+        { at: 0.56, pose: {} }
       ]
     }
   };
@@ -240,8 +241,8 @@ export function createHumanRig(options = {}) {
             const elbow = joints[side + "Elbow"];
             thigh.rotation.x = (initialRotations.get(thigh)?.x || 0) + swing * 0.62 * amplitude;
             knee.rotation.x = (initialRotations.get(knee)?.x || 0) + recovery * 0.52 * amplitude;
-            shoulder.rotation.x = (initialRotations.get(shoulder)?.x || 0) - swing * 0.68 * amplitude;
-            elbow.rotation.x = (initialRotations.get(elbow)?.x || 0) - (0.16 + recovery * 0.28) * amplitude;
+            shoulder.rotation.x = (initialRotations.get(shoulder)?.x || 0) - swing * 1.05 * amplitude;
+            elbow.rotation.x = (initialRotations.get(elbow)?.x || 0) - (0.22 + recovery * 0.42) * amplitude;
           }
         }
 
