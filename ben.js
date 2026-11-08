@@ -1,9 +1,9 @@
 import * as THREE from "three";
 
 /**
- * Minecraft-style Ben built entirely from cuboids.
- * Every body part is parented to the matching joint in the rig supplied
- * by main.js, so the existing walk cycle drives the block character.
+ * Ben's articulated, Minecraft-style cuboid model.
+ * The skeleton and walk cycle remain in main.js; this file only builds
+ * the visible character and attaches each cuboid to its matching joint.
  */
 export function createBen({ createHumanRig }) {
   if (typeof createHumanRig !== "function") {
@@ -14,21 +14,24 @@ export function createBen({ createHumanRig }) {
   const { group, joints } = rig;
   group.name = "Ben10CuboidCharacter";
 
-  // Hide the rig's diagnostic bone cylinders and joint markers.
+  // The rig creates diagnostic meshes for the skeleton. Keep its bones,
+  // but hide those meshes so only the character geometry is rendered.
   group.traverse(object => {
     if (object.isMesh) object.visible = false;
   });
 
-  const materials = {
-    skin: new THREE.MeshStandardMaterial({ color: 0xd99a82, roughness: 0.9 }),
-    hair: new THREE.MeshStandardMaterial({ color: 0x38231d, roughness: 0.95 }),
-    hairLight: new THREE.MeshStandardMaterial({ color: 0x503025, roughness: 0.95 }),
-    shirt: new THREE.MeshStandardMaterial({ color: 0x151a18, roughness: 0.9 }),
-    green: new THREE.MeshStandardMaterial({ color: 0x079b4c, roughness: 0.85 }),
-    pants: new THREE.MeshStandardMaterial({ color: 0x704329, roughness: 0.95 }),
-    white: new THREE.MeshStandardMaterial({ color: 0xe5e8df, roughness: 0.85 }),
-    sole: new THREE.MeshStandardMaterial({ color: 0x252a28, roughness: 0.95 }),
-    omnitrix: new THREE.MeshStandardMaterial({ color: 0x087c3d, roughness: 0.6 })
+  const mat = {
+    skin: new THREE.MeshStandardMaterial({ color: 0xc98d78, roughness: 0.92 }),
+    hair: new THREE.MeshStandardMaterial({ color: 0x38231e, roughness: 0.96 }),
+    shirt: new THREE.MeshStandardMaterial({ color: 0x101512, roughness: 0.9 }),
+    green: new THREE.MeshStandardMaterial({ color: 0x079b4b, roughness: 0.86 }),
+    pants: new THREE.MeshStandardMaterial({ color: 0x70452f, roughness: 0.96 }),
+    pantsDark: new THREE.MeshStandardMaterial({ color: 0x593522, roughness: 0.96 }),
+    white: new THREE.MeshStandardMaterial({ color: 0xe7e9e2, roughness: 0.86 }),
+    sole: new THREE.MeshStandardMaterial({ color: 0x252a29, roughness: 0.94 }),
+    watchGreen: new THREE.MeshStandardMaterial({ color: 0x078b43, roughness: 0.62 }),
+    watchDark: new THREE.MeshStandardMaterial({ color: 0x17211c, roughness: 0.55 }),
+    watchGlass: new THREE.MeshStandardMaterial({ color: 0x9ca99f, roughness: 0.38, metalness: 0.12 })
   };
 
   const box = (parent, name, size, position, material) => {
@@ -44,79 +47,99 @@ export function createBen({ createHumanRig }) {
     return mesh;
   };
 
-  // Torso and waist follow the spine and hip respectively.
-  box(joints.spine, "BenBlockTorso", [0.43, 0.57, 0.25],
-    [0, 0.22, 0], materials.shirt);
-  box(joints.spine, "BenGreenChestStripe", [0.075, 0.47, 0.012],
-    [0, 0.23, 0.132], materials.green);
-  box(joints.hip, "BenBlockWaist", [0.34, 0.20, 0.23],
-    [0, -0.015, 0], materials.pants);
+  // Torso: the waist overlaps the shirt slightly, eliminating the visible
+  // floating gap while retaining the separate hip pivot for leg movement.
+  box(joints.spine, "BenShirt", [0.45, 0.57, 0.28],
+    [0, 0.22, 0], mat.shirt);
+  box(joints.spine, "BenGreenCenterStripe", [0.105, 0.50, 0.016],
+    [0, 0.22, 0.148], mat.green);
 
-  // Head is deliberately featureless: no eyes, nose, mouth or ears.
-  const head = joints.head;
-  box(head, "BenBlockHead", [0.36, 0.40, 0.31],
-    [0, 0.075, 0], materials.skin);
+  // Block-built white "10" emblem, placed on the green stripe.
+  const emblem = new THREE.Group();
+  emblem.name = "Ben10ShirtEmblem";
+  emblem.position.set(0, 0.18, 0.16);
+  joints.spine.add(emblem);
+  // The 1.
+  box(emblem, "TenOneStem", [0.025, 0.105, 0.012],
+    [-0.033, 0, 0], mat.white);
+  box(emblem, "TenOneTop", [0.045, 0.022, 0.012],
+    [-0.038, 0.043, 0], mat.white);
+  // The 0 is a small rectangular outline.
+  box(emblem, "TenZeroTop", [0.052, 0.018, 0.012],
+    [0.027, 0.044, 0], mat.white);
+  box(emblem, "TenZeroBottom", [0.052, 0.018, 0.012],
+    [0.027, -0.044, 0], mat.white);
+  box(emblem, "TenZeroLeft", [0.018, 0.088, 0.012],
+    [0.001, 0, 0], mat.white);
+  box(emblem, "TenZeroRight", [0.018, 0.088, 0.012],
+    [0.053, 0, 0], mat.white);
 
-  // Simple, low-profile brown hair cap and front fringe.
-  box(head, "BenHairCap", [0.38, 0.105, 0.33],
-    [0, 0.305, -0.005], materials.hair);
-  box(head, "BenHairFront", [0.38, 0.075, 0.075],
-    [0, 0.245, 0.16], materials.hair);
-  box(head, "BenHairSideLeft", [0.065, 0.14, 0.30],
-    [-0.157, 0.205, 0], materials.hairLight);
-  box(head, "BenHairSideRight", [0.065, 0.14, 0.30],
-    [0.157, 0.205, 0], materials.hairLight);
-  box(head, "BenHairBack", [0.34, 0.16, 0.07],
-    [0, 0.16, -0.145], materials.hair);
+  // Waist sits high enough to meet the shirt hem and overlaps the upper legs.
+  box(joints.hip, "BenTrouserWaist", [0.37, 0.25, 0.25],
+    [0, 0.20, 0], mat.pants);
 
-  // Cuboid arms. Their local X axes run from shoulder toward the elbow.
+  // A visible cuboid neck bridges the torso and the head.
+  box(joints.neck, "BenNeck", [0.16, 0.22, 0.17],
+    [0, 0.075, 0], mat.skin);
+
+  // Featureless rectangular head. Hair is intentionally one simple cuboid.
+  box(joints.head, "BenHead", [0.37, 0.42, 0.32],
+    [0, 0.075, 0], mat.skin);
+  box(joints.head, "BenSimpleHair", [0.395, 0.135, 0.345],
+    [0, 0.305, -0.004], mat.hair);
+
+  // Arms follow the existing shoulder, elbow and wrist joints.
+  // Their cuboids are sized to meet at the pivots without exposed gaps.
   for (const side of ["left", "right"]) {
     const sign = side === "left" ? -1 : 1;
     const shoulder = joints[side + "Shoulder"];
     const elbow = joints[side + "Elbow"];
     const wrist = joints[side + "Wrist"];
-    const upper = 0.30;
-    const forearm = 0.27;
 
-    box(shoulder, side + "GreenSleeve",
-      [upper + 0.025, 0.205, 0.235],
-      [sign * upper * 0.48, 0, 0], materials.green);
-    box(elbow, side + "BlockForearm",
-      [forearm + 0.015, 0.145, 0.16],
-      [sign * forearm * 0.48, -0.005, 0], materials.skin);
-    box(wrist, side + "BlockHand", [0.13, 0.13, 0.15],
-      [sign * 0.065, 0, 0], materials.skin);
+    box(shoulder, side + "GreenSleeve", [0.34, 0.235, 0.27],
+      [sign * 0.15, 0, 0], mat.green);
+    box(elbow, side + "SkinForearm", [0.30, 0.16, 0.18],
+      [sign * 0.135, -0.005, 0], mat.skin);
+    box(wrist, side + "SkinHand", [0.14, 0.14, 0.17],
+      [sign * 0.065, 0, 0], mat.skin);
   }
 
-  // Separate block legs retain a visible gap between the trouser legs.
+  // Straight, separated trouser legs. Each segment is centered on its bone.
   for (const side of ["left", "right"]) {
     const thigh = joints[side + "Thigh"];
     const knee = joints[side + "Knee"];
     const ankle = joints[side + "Ankle"];
 
-    box(thigh, side + "BlockTrouserUpper", [0.17, 0.44, 0.20],
-      [0, -0.215, 0], materials.pants);
-    box(knee, side + "BlockTrouserLower", [0.16, 0.40, 0.19],
-      [0, -0.205, 0], materials.pants);
-    box(ankle, side + "BlockBoot", [0.19, 0.17, 0.29],
-      [0, -0.075, 0.065], materials.white);
-    box(ankle, side + "BootSole", [0.195, 0.045, 0.295],
-      [0, -0.145, 0.065], materials.sole);
-    box(ankle, side + "GreenBootDetail", [0.13, 0.045, 0.035],
-      [0, -0.025, 0.215], materials.green);
+    box(thigh, side + "UpperTrouser", [0.18, 0.45, 0.21],
+      [0, -0.215, 0], mat.pants);
+    box(knee, side + "LowerTrouser", [0.17, 0.44, 0.20],
+      [0, -0.215, 0], mat.pantsDark);
+
+    // Low-profile white trainers with dark soles and green heel/toe accents.
+    box(ankle, side + "WhiteTrainer", [0.205, 0.15, 0.31],
+      [0, -0.065, 0.085], mat.white);
+    box(ankle, side + "TrainerSole", [0.21, 0.045, 0.315],
+      [0, -0.145, 0.085], mat.sole);
+    box(ankle, side + "TrainerGreenToe", [0.13, 0.025, 0.035],
+      [0, -0.035, 0.235], mat.green);
   }
 
-  // Simple block-shaped Omnitrix attached to the outside/front of the left wrist.
+  // Cuboid Omnitrix: green wrist strap, pale outer casing and dark display.
+  // It sits on the front/outside of Ben's left wrist, not as a loose white block.
   const watch = new THREE.Group();
   watch.name = "Omnitrix";
-  watch.position.set(-0.005, 0, 0.085);
+  watch.position.set(-0.005, 0.005, 0.085);
   joints.leftWrist.add(watch);
-  box(watch, "OmnitrixStrap", [0.12, 0.15, 0.09],
-    [0, 0, 0], materials.white);
-  box(watch, "OmnitrixFace", [0.085, 0.095, 0.018],
-    [0, 0, 0.054], materials.omnitrix);
-  box(watch, "OmnitrixCenter", [0.035, 0.045, 0.008],
-    [0, 0, 0.067], materials.green);
+  box(watch, "OmnitrixGreenBand", [0.15, 0.17, 0.105],
+    [0, 0, 0], mat.watchGreen);
+  box(watch, "OmnitrixPaleCase", [0.145, 0.135, 0.035],
+    [0, 0, 0.066], mat.white);
+  box(watch, "OmnitrixDarkBezel", [0.112, 0.102, 0.014],
+    [0, 0, 0.091], mat.watchDark);
+  box(watch, "OmnitrixDisplay", [0.078, 0.072, 0.008],
+    [0, 0, 0.103], mat.watchGlass);
+  box(watch, "OmnitrixGreenCore", [0.026, 0.042, 0.008],
+    [0, 0, 0.11], mat.watchGreen);
 
   return { group, rig, joints };
 }
