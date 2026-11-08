@@ -167,10 +167,11 @@ export function createBen({ createHumanRig }) {
 
   // Shirt extends down over the pelvis. The waistband is parented to the
   // spine, not the independently rotating hip, so the two cannot pull apart.
-  box(joints.spine, "BenShirt", [0.45, 0.72, 0.28],
+  const torso = box(joints.spine, "BenShirt", [0.45, 0.72, 0.28],
     [0, 0.15, 0], [
       mat.black, mat.black, mat.black, mat.black, mat.shirt, mat.black
     ]);
+  rig.fitToTorso(torso);
 
   box(joints.spine, "BenTrouserWaist", [0.38, 0.34, 0.255],
     [0, -0.10, 0], mat.pants);
@@ -191,14 +192,14 @@ export function createBen({ createHumanRig }) {
     const wrist = joints[side + "Wrist"];
 
     // Upper sleeve overlaps the clavicle end and the forearm slightly.
-    box(shoulder, side + "BlackSleeve", [0.37, 0.22, 0.265],
-      [sign * 0.145, 0, 0], [
+    box(shoulder, side + "BlackSleeve", [Math.abs(elbow.position.x) + 0.035, 0.22, 0.265],
+      [elbow.position.x * 0.5, elbow.position.y * 0.5, 0], [
         mat.black, mat.black, mat.sleeve, mat.black, mat.black, mat.black
       ]);
 
-    // Forearm and hand overlap at the wrist for a continuous silhouette.
-    box(elbow, side + "SkinForearm", [0.315, 0.155, 0.175],
-      [sign * 0.135, 0, 0], mat.skin);
+    // Forearm and hand are centered on the actual elbow-to-wrist span.
+    box(elbow, side + "SkinForearm", [Math.abs(wrist.position.x) + 0.035, 0.155, 0.175],
+      [wrist.position.x * 0.5, wrist.position.y * 0.5, 0], mat.skin);
     box(wrist, side + "SkinHand", [0.155, 0.145, 0.17],
       [sign * 0.075, 0, 0], mat.skin);
   }
@@ -212,8 +213,8 @@ export function createBen({ createHumanRig }) {
     // Extend the upper trouser panel above the thigh pivot so it physically
     // overlaps the waistband/pelvis. Keep its lower edge at the original
     // position so the knee seam and lower-leg proportions do not change.
-    box(thigh, side + "UpperTrouser", [0.205, 0.66, 0.215],
-      [0, -0.105, 0], mat.pants);
+    box(thigh, side + "UpperTrouser", [0.205, 0.62, 0.215],
+      [0, -0.30, 0], mat.pants);
     box(knee, side + "LowerTrouser", [0.17, 0.44, 0.20],
       [0, -0.215, 0], mat.pantsDark);
 
@@ -225,19 +226,25 @@ export function createBen({ createHumanRig }) {
       [0, -0.035, 0.235], mat.green);
   }
 
-  // Omnitrix: one green cuboid body with a single textured faceplate.
+  // Omnitrix strap wraps around the wrist on all four sides; the watch
+  // housing sits over the dorsal strap while the rear band remains visible.
   const watch = new THREE.Group();
   watch.name = "Omnitrix";
   watch.position.set(-0.005, 0.005, 0.085);
   joints.leftWrist.add(watch);
-  box(watch, "OmnitrixBody", [0.15, 0.17, 0.105], [0, 0, 0], mat.watchGreen);
+  const strap = new THREE.MeshStandardMaterial({ color: 0x17251d, roughness: 0.86 });
+  box(watch, "OmnitrixStrapTop", [0.19, 0.025, 0.19], [0, 0.082, -0.005], strap);
+  box(watch, "OmnitrixStrapBottom", [0.19, 0.025, 0.19], [0, -0.082, -0.005], strap);
+  box(watch, "OmnitrixStrapBack", [0.19, 0.14, 0.025], [0, 0, -0.092], strap);
+  box(watch, "OmnitrixStrapFrontSides", [0.19, 0.14, 0.025], [0, 0, 0.082], strap);
+  box(watch, "OmnitrixBody", [0.15, 0.17, 0.105], [0, 0, 0.105], mat.watchGreen);
 
   const face = new THREE.Mesh(
     new THREE.PlaneGeometry(0.132, 0.132),
     mat.watchFace
   );
   face.name = "OmnitrixTexturedFaceplate";
-  face.position.z = 0.0535;
+  face.position.z = 0.1585;
   face.castShadow = false;
   watch.add(face);
 
