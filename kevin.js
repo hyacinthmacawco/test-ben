@@ -17,8 +17,26 @@ export function createKevin({ createHumanRig }) {
     pants: new THREE.MeshStandardMaterial({ color: 0x17233b, roughness: 0.94 }),
     belt: new THREE.MeshStandardMaterial({ color: 0x303b42, roughness: 0.82 })
   };
-  const hairMap = mat.hair;
   const faceMaterial = mat.skin;
+  const makeHairTexture = (front = false) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 384; canvas.height = 384;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, 384, 384);
+    ctx.fillStyle = "#17151b";
+    if (front) {
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(384, 0); ctx.lineTo(384, 88);
+      ctx.lineTo(320, 116); ctx.lineTo(260, 82); ctx.lineTo(190, 122);
+      ctx.lineTo(120, 88); ctx.lineTo(55, 118); ctx.lineTo(0, 90);
+      ctx.closePath(); ctx.fill();
+    } else ctx.fillRect(0, 0, 384, 384);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.anisotropy = 4;
+    return texture;
+  };
+  const frontHairMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: makeHairTexture(true), transparent: true, roughness: 0.95 });
+  const sideHairMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: makeHairTexture(false), roughness: 0.95 });
   const shirtCanvas = document.createElement("canvas");
   shirtCanvas.width = 512; shirtCanvas.height = 640;
   const shirtCtx = shirtCanvas.getContext("2d");
@@ -42,37 +60,10 @@ export function createKevin({ createHumanRig }) {
     [mat.shirt, mat.shirt, mat.shirt, mat.shirt, shirtFront, mat.shirt]);
   rig.fitToTorso(torso);
   box(joints.spine, "KevinNeckBand", [0.30, 0.11, 0.30], [0, 0.49, 0], mat.sleeveDark);
-  // Plain black hair geometry: swept fringe, rear length and long side
-  // locks. These are solid-color pieces, not streaked hair textures.
+  // Hair is a set of painted head-surface maps; no separate hair meshes.
   const headMesh = box(joints.head, "KevinHead", [0.37, 0.43, 0.32], [0, 0.055, 0],
-    [hairMap, hairMap, hairMap, faceMaterial, faceMaterial, hairMap]);
+    [sideHairMat, sideHairMat, mat.hair, faceMaterial, frontHairMat, sideHairMat]);
   rig.fitHeadToTorso(torso, headMesh);
-
-  const fringeShape = new THREE.Shape();
-  fringeShape.moveTo(-0.185, 0.27);
-  fringeShape.lineTo(0.185, 0.27);
-  fringeShape.lineTo(0.185, 0.16);
-  fringeShape.lineTo(0.105, 0.12);
-  fringeShape.lineTo(0.035, 0.17);
-  fringeShape.lineTo(-0.045, 0.13);
-  fringeShape.lineTo(-0.12, 0.17);
-  fringeShape.lineTo(-0.185, 0.14);
-  fringeShape.closePath();
-  const fringe = new THREE.Mesh(new THREE.ShapeGeometry(fringeShape), mat.hair);
-  fringe.name = "KevinFrontFringe";
-  fringe.position.z = 0.166;
-  fringe.castShadow = true;
-  joints.head.add(fringe);
-
-  // Shoulder-length hair on both sides and a continuous rear curtain.
-  box(joints.head, "KevinBackHair", [0.38, 0.48, 0.10], [0, -0.075, -0.185], mat.hair);
-  for (const sign of [-1, 1]) {
-    const lock = box(joints.head, "KevinLongSideHair", [0.11, 0.52, 0.30],
-      [sign * 0.175, -0.105, -0.015], mat.hair);
-    lock.rotation.z = sign * 0.12;
-    box(joints.head, "KevinSideHairTip", [0.12, 0.12, 0.29],
-      [sign * 0.19, -0.39, -0.015], mat.hair);
-  }
 
   for (const side of ["left", "right"]) {
     const sign = side === "left" ? -1 : 1;
