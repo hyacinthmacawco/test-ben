@@ -15,6 +15,10 @@
     #capture-photo:hover { background: #26364acc; }
     #capture-photo:active { transform: scale(.97); }
     #capture-photo:focus-visible { outline: 2px solid #8bb8e8; outline-offset: 3px; }
+    #rig-controls { position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 6; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; width: min(96vw, 520px); padding: 10px; border: 1px solid #ffffff24; border-radius: 16px; background: #18212ddd; backdrop-filter: blur(12px); box-shadow: 0 8px 28px #0006; }
+    #rig-controls button { border: 1px solid #ffffff30; border-radius: 10px; padding: 10px 13px; color: #eef4f0; background: #26364a; font: 600 13px system-ui, sans-serif; cursor: pointer; }
+    #rig-controls button:hover, #rig-controls button[aria-pressed="true"] { background: #087c43; border-color: #39bd78; }
+    #rig-controls button:focus-visible { outline: 2px solid #8bb8e8; outline-offset: 2px; }
   </style>
   <script type="importmap">
     { "imports": {
@@ -26,6 +30,12 @@
 <body>
   <div id="info"><strong>Ben 10 character rig</strong><span>Drag to orbit · Scroll to zoom<br>Procedural Ben model driven by the articulated walking rig</span></div>
   <button id="capture-photo" type="button" aria-label="Take a photo of the scene">Take photo</button>
+  <nav id="rig-controls" aria-label="Character animation controls">
+    <button type="button" data-animation="walk" aria-pressed="true">Walk</button>
+    <button type="button" data-animation="jump">Jump</button>
+    <button type="button" data-animation="pickup">Pick up</button>
+    <button type="button" data-animation="punch">Punch</button>
+  </nav>
   <canvas id="scene"></canvas>
   <script type="module" src="./main.js"></script>
 </body>
