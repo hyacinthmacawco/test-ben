@@ -166,6 +166,33 @@ export function createHumanRig(options = {}) {
 
   const rig = {
     group: root,
+    fitToTorso(torsoMesh) {
+      if (!torsoMesh?.geometry) throw new TypeError("fitToTorso requires a torso mesh.");
+      torsoMesh.geometry.computeBoundingBox();
+      const bounds = torsoMesh.geometry.boundingBox;
+      const localMinY = bounds.min.y + torsoMesh.position.y;
+      const localMaxY = bounds.max.y + torsoMesh.position.y;
+      const halfWidth = (bounds.max.x - bounds.min.x) * 0.5;
+      const centerZ = (bounds.min.z + bounds.max.z) * 0.5 + torsoMesh.position.z;
+      root.updateMatrixWorld(true);
+
+      // Derive attachment points from the torso's real geometry bounds.
+      const shoulderWorld = spine.localToWorld(new THREE.Vector3(0, localMaxY - 0.055, centerZ));
+      const bridge = bones.find(bone => bone.name === "shoulderBridge");
+      bridge.parent.worldToLocal(shoulderWorld);
+      bridge.position.copy(shoulderWorld);
+      for (const side of ["left", "right"]) {
+        const sign = side === "left" ? -1 : 1;
+        joints[side + "Shoulder"].position.set(sign * halfWidth * 0.78, 0, 0);
+        const legWorld = spine.localToWorld(new THREE.Vector3(
+          sign * halfWidth * 0.24, localMinY + 0.025, centerZ
+        ));
+        hip.worldToLocal(legWorld);
+        joints[side + "Thigh"].position.copy(legWorld);
+      }
+      root.updateMatrixWorld(true);
+      return { halfWidth, localMinY, localMaxY };
+    },
     skeleton,
     bones,
     joints,
