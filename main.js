@@ -128,9 +128,9 @@ export function createHumanRig(options = {}) {
       duration: 0.78,
       frames: [
         { at: 0, pose: {} },
-        { at: 0.12, pose: { hip: { x: 0.12 } } },
-        { at: 0.42, pose: { hip: { x: -0.10 } } },
-        { at: 0.72, pose: { hip: { x: 0.04 } } },
+        { at: 0.12, pose: { rootY: 0.42, hip: { x: 0.12 } } },
+        { at: 0.42, pose: { rootY: 0.72, hip: { x: -0.10 } } },
+        { at: 0.72, pose: { rootY: 0.18, hip: { x: 0.04 } } },
         { at: 1, pose: {} }
       ]
     },
@@ -166,6 +166,19 @@ export function createHumanRig(options = {}) {
 
   const rig = {
     group: root,
+    fitHeadToTorso(torsoMesh, headMesh) {
+      if (!torsoMesh?.geometry || !headMesh?.geometry) throw new TypeError("fitHeadToTorso requires torso and head meshes.");
+      torsoMesh.geometry.computeBoundingBox();
+      headMesh.geometry.computeBoundingBox();
+      const torsoTop = torsoMesh.geometry.boundingBox.max.y + torsoMesh.position.y;
+      const headBottom = headMesh.geometry.boundingBox.min.y + headMesh.position.y;
+      // Both meshes are descendants of spine; move the head mesh in its own
+      // local frame until its lower edge meets the torso's upper edge.
+      const neckOffset = joints.neck.position.y;
+      const headOffset = joints.head.position.y;
+      headMesh.position.y += (torsoTop - (neckOffset + headOffset + headBottom));
+      root.updateMatrixWorld(true);
+    },
     fitToTorso(torsoMesh) {
       if (!torsoMesh?.geometry) throw new TypeError("fitToTorso requires a torso mesh.");
       torsoMesh.geometry.computeBoundingBox();
@@ -185,7 +198,7 @@ export function createHumanRig(options = {}) {
         const sign = side === "left" ? -1 : 1;
         joints[side + "Shoulder"].position.set(sign * halfWidth * 0.78, 0, 0);
         const legWorld = spine.localToWorld(new THREE.Vector3(
-          sign * halfWidth * 0.24, localMinY + 0.025, centerZ
+          sign * halfWidth * 0.24, localMinY - 0.025, centerZ
         ));
         hip.worldToLocal(legWorld);
         joints[side + "Thigh"].position.copy(legWorld);
@@ -441,6 +454,7 @@ const supportingRigs = [];
 import("./ben.js").then(({ createBen }) => {
   benCharacter = createBen({ createHumanRig });
   humanRig = benCharacter.rig;
+  allRigs.push(humanRig);
   scene.add(benCharacter.group);
 
   characterBody = new CANNON.Body({
@@ -461,22 +475,21 @@ import("./ben.js").then(({ createBen }) => {
     const button = event.target.closest("button[data-animation]");
     if (!button || !humanRig) return;
     const animation = button.dataset.animation;
-    if (animation === "walk") {
-      humanRig.stopAnimation();
-      humanRig.setWalking(true);
-      controlsPanel.querySelectorAll("button").forEach(item => {
-        item.setAttribute("aria-pressed", String(item === button));
-      });
-    } else {
-      humanRig.playAnimation(animation);
-      if (animation === "jump" && characterBody) {
-        characterBody.velocity.y = 4.4;
-        characterBody.wakeUp();
+    for (const rig of allRigs) {
+      if (animation === "walk") {
+        rig.stopAnimation();
+        rig.setWalking(true);
+      } else {
+        rig.playAnimation(animation);
       }
-      controlsPanel.querySelectorAll("button").forEach(item => {
-        item.setAttribute("aria-pressed", String(item === button));
-      });
     }
+    if (animation === "jump" && characterBody) {
+      characterBody.velocity.y = 4.4;
+      characterBody.wakeUp();
+    }
+    controlsPanel.querySelectorAll("button").forEach(item => {
+      item.setAttribute("aria-pressed", String(item === button));
+    });
   });
 }).catch(error => {
   console.error("Could not load Ben character:", error);
@@ -495,6 +508,7 @@ for (const item of companionLoads) {
     character.group.position.x = item.x;
     scene.add(character.group);
     supportingRigs.push(character.rig);
+    allRigs.push(character.rig);
     window[item.name.toLowerCase()] = character;
   }).catch(error => {
     console.error(`Could not load ${item.name} character:`, error);
