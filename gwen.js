@@ -74,19 +74,44 @@ export function createGwen({ createHumanRig }) {
   // Plaid skirt pattern is applied directly to the upper-leg surfaces; no
   // separate skirt or hip cuboid is added to the silhouette.
 
-  // Orange bob cut: crown plus long side locks and a layered fringe.
+  // Plain orange hair: a shaped front fringe and long side panels give
+  // Gwen a recognizable bob silhouette without using hair textures.
   const headMesh = box(joints.head, "GwenHead", [0.37, 0.42, 0.32], [0, 0.055, 0],
     [hairMat, hairMat, hairMat, skinFaceMat, skinFaceMat, hairMat]);
   rig.fitHeadToTorso(torso, headMesh);
 
-  // Spectacles are the only facial detail: dark blue rims, blue-tinted lenses,
-  // bridge and short temples. No eyes, nose or mouth are modelled.
+  const fringeShape = new THREE.Shape();
+  fringeShape.moveTo(-0.185, 0.265);
+  fringeShape.lineTo(0.185, 0.265);
+  fringeShape.lineTo(0.185, 0.155);
+  fringeShape.lineTo(0.115, 0.135);
+  fringeShape.lineTo(0.055, 0.165);
+  fringeShape.lineTo(-0.005, 0.125);
+  fringeShape.lineTo(-0.075, 0.16);
+  fringeShape.lineTo(-0.135, 0.13);
+  fringeShape.lineTo(-0.185, 0.16);
+  fringeShape.closePath();
+  const fringe = new THREE.Mesh(new THREE.ShapeGeometry(fringeShape), mat.hair);
+  fringe.name = "GwenFrontFringe";
+  fringe.position.z = 0.166;
+  fringe.castShadow = true;
+  joints.head.add(fringe);
+
   for (const sign of [-1, 1]) {
-    box(joints.head, "GwenSpectacleLens", [0.145, 0.095, 0.018], [sign * 0.088, 0.085, 0.178], mat.lens);
-    box(joints.head, "GwenSpectacleTop", [0.16, 0.014, 0.025], [sign * 0.088, 0.14, 0.18], mat.frame);
-    box(joints.head, "GwenSpectacleBottom", [0.16, 0.014, 0.025], [sign * 0.088, 0.03, 0.18], mat.frame);
-    box(joints.head, "GwenSpectacleOuter", [0.014, 0.11, 0.025], [sign * 0.166, 0.085, 0.18], mat.frame);
-    box(joints.head, "GwenSpectacleInner", [0.014, 0.11, 0.025], [sign * 0.01, 0.085, 0.18], mat.frame);
+    const sideLock = box(joints.head, "GwenLongSideHair", [0.105, 0.48, 0.335],
+      [sign * 0.175, -0.105, -0.005], mat.hair);
+    sideLock.rotation.z = -sign * 0.035;
+    box(joints.head, "GwenBobEnd", [0.11, 0.09, 0.34],
+      [sign * 0.175, -0.365, -0.005], mat.hair);
+  }
+
+  // Keep only the spectacle frames and lenses; lower them clear of the fringe.
+  for (const sign of [-1, 1]) {
+    box(joints.head, "GwenSpectacleLens", [0.145, 0.095, 0.018], [sign * 0.088, -0.005, 0.178], mat.lens);
+    box(joints.head, "GwenSpectacleTop", [0.16, 0.014, 0.025], [sign * 0.088, 0.05, 0.18], mat.frame);
+    box(joints.head, "GwenSpectacleBottom", [0.16, 0.014, 0.025], [sign * 0.088, -0.06, 0.18], mat.frame);
+    box(joints.head, "GwenSpectacleOuter", [0.014, 0.11, 0.025], [sign * 0.166, -0.005, 0.18], mat.frame);
+    box(joints.head, "GwenSpectacleInner", [0.014, 0.11, 0.025], [sign * 0.01, -0.005, 0.18], mat.frame);
   }
 
   for (const side of ["left", "right"]) {
