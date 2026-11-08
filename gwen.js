@@ -47,7 +47,7 @@ export function createGwen({ createHumanRig }) {
   const topFront = new THREE.MeshStandardMaterial({ color: 0xffffff, map: topTexture, roughness: 0.92 });
   const skinFaceMat = mat.skin;
   const hairTexture = makeTexture((ctx, w, h) => {
-    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = "#e5b3a4"; ctx.fillRect(0, 0, w, h);
     ctx.fillStyle = "#d95b20";
     // Front fringe only: a clean hairline that stays above the glasses.
     ctx.beginPath();
@@ -67,7 +67,7 @@ export function createGwen({ createHumanRig }) {
     ctx.lineTo(w * 0.28, h); ctx.lineTo(0, h * 0.90);
     ctx.closePath(); ctx.fill();
   });
-  const hairFrontMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: hairTexture, transparent: true, roughness: 0.95 });
+  const hairFrontMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: hairTexture, transparent: false, roughness: 0.95 });
   const hairSideMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: hairSideTexture, roughness: 0.95 });
   const plaidTexture = makeTexture((ctx, w, h) => {
     ctx.fillStyle = "#244c83"; ctx.fillRect(0, 0, w, h);
