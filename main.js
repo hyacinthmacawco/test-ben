@@ -7,6 +7,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
  * Main joints: hip, neck, two shoulders, two elbows, and two knees.
  * The clavicle bar sits directly below the neck and connects both shoulders.
  */
+
 export function createHumanRig(options = {}) {
   const {
     boneColor = 0x8bb8e8,
