@@ -17,19 +17,8 @@ export function createRook({ createHumanRig }) {
     boot: new THREE.MeshStandardMaterial({ color: 0x263f70, roughness: 0.82 }),
     sole: new THREE.MeshStandardMaterial({ color: 0x0d1322, roughness: 0.9 })
   };
-  const hairCanvas = document.createElement("canvas");
-  hairCanvas.width = 512; hairCanvas.height = 512;
-  const hairCtx = hairCanvas.getContext("2d");
-  hairCtx.fillStyle = "#10121b"; hairCtx.fillRect(0,0,512,512);
-  for (let x=-100; x<620; x+=58) {
-    hairCtx.strokeStyle = x%3 ? "#26334f" : "#080a12";
-    hairCtx.lineWidth = 18; hairCtx.beginPath(); hairCtx.moveTo(x,0);
-    hairCtx.quadraticCurveTo(x+20,260,x-25,512); hairCtx.stroke();
-  }
-  const hairTexture = new THREE.CanvasTexture(hairCanvas);
-  hairTexture.colorSpace = THREE.SRGBColorSpace;
-  const hairMaterial = new THREE.MeshStandardMaterial({ map: hairTexture, roughness: 0.92 });
-  const faceMaterial = new THREE.MeshStandardMaterial({ color: 0xc3d5d9, roughness: 0.9 });
+  const hairMaterial = mat.black;
+  const faceMaterial = mat.face;
   const box = (p, n, s, pos, m) => {
     const o = new THREE.Mesh(new THREE.BoxGeometry(...s), m);
     o.name = n; o.position.set(...pos); o.castShadow = true; o.receiveShadow = true; p.add(o); return o;
