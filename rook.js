@@ -23,7 +23,8 @@ export function createRook({ createHumanRig }) {
   };
 
   // Broad black undersuit with blue chest and shoulder armour.
-  box(joints.spine, "RookBlackUndersuit", [0.53, 0.75, 0.32], [0, 0.15, 0], mat.black);
+  const torso = box(joints.spine, "RookBlackUndersuit", [0.53, 0.75, 0.32], [0, 0.15, 0], mat.black);
+  rig.fitToTorso(torso);
   box(joints.spine, "RookBlueChestPlate", [0.47, 0.43, 0.075], [0, 0.24, 0.19], mat.armor);
   box(joints.spine, "RookChestInset", [0.28, 0.20, 0.025], [0, 0.12, 0.235], mat.trim);
   box(joints.spine, "RookNeckArmour", [0.34, 0.13, 0.33], [0, 0.49, 0], mat.armorLight);
@@ -35,20 +36,25 @@ export function createRook({ createHumanRig }) {
   box(joints.head, "RookDarkCrown", [0.40, 0.19, 0.36], [0, 0.255, -0.005], mat.black);
   box(joints.head, "RookBlueCrest", [0.13, 0.22, 0.37], [0, 0.30, 0.02], mat.armor);
   for (const sign of [-1, 1]) {
-    const ear = box(joints.head, "RookPointedEar", [0.14, 0.18, 0.16], [sign * 0.24, 0.07, -0.015], mat.skin);
-    ear.rotation.z = -sign * 0.45;
     box(joints.head, "RookJawSide", [0.09, 0.24, 0.30], [sign * 0.15, -0.10, 0.015], mat.face);
   }
 
   for (const side of ["left", "right"]) {
     const sign = side === "left" ? -1 : 1;
-    box(joints[side + "Shoulder"], "RookLargeShoulderPad", [0.47, 0.29, 0.35], [sign * 0.15, 0, 0], mat.armor);
-    box(joints[side + "Shoulder"], "RookShoulderInset", [0.34, 0.20, 0.365], [sign * 0.15, 0, 0.01], mat.armorLight);
-    box(joints[side + "Elbow"], "RookBlackUpperForearm", [0.33, 0.18, 0.22], [sign * 0.13, 0, 0], mat.black);
-    box(joints[side + "Elbow"], "RookBlueForearmGuard", [0.34, 0.20, 0.24], [sign * 0.13, -0.02, 0.045], mat.armorLight);
+    const shoulder = joints[side + "Shoulder"];
+    const elbow = joints[side + "Elbow"];
+    const wrist = joints[side + "Wrist"];
+    box(shoulder, "RookLargeShoulderPad", [Math.abs(elbow.position.x) + 0.14, 0.29, 0.35],
+      [elbow.position.x * 0.5, 0, 0], mat.armor);
+    box(shoulder, "RookShoulderInset", [Math.abs(elbow.position.x) + 0.06, 0.20, 0.365],
+      [elbow.position.x * 0.5, 0, 0.01], mat.armorLight);
+    box(elbow, "RookBlackUpperForearm", [Math.abs(wrist.position.x) + 0.045, 0.18, 0.22],
+      [wrist.position.x * 0.5, wrist.position.y * 0.5, 0], mat.black);
+    box(elbow, "RookBlueForearmGuard", [Math.abs(wrist.position.x) + 0.06, 0.20, 0.24],
+      [wrist.position.x * 0.5, wrist.position.y * 0.5 - 0.02, 0.045], mat.armorLight);
     box(joints[side + "Wrist"], "RookBlueGauntlet", [0.18, 0.19, 0.22], [sign * 0.08, 0, 0], mat.armor);
     box(joints[side + "Wrist"], "RookClawHand", [0.18, 0.16, 0.19], [sign * 0.08, -0.02, 0.04], mat.skin);
-    box(joints[side + "Thigh"], "RookBlackLeg", [0.23, 0.68, 0.23], [0, -0.10, 0], mat.black);
+    box(joints[side + "Thigh"], "RookBlackLeg", [0.23, 0.64, 0.23], [0, -0.30, 0], mat.black);
     box(joints[side + "Thigh"], "RookHipSidePlate", [0.12, 0.27, 0.25], [sign * 0.10, -0.02, 0.025], mat.armorLight);
     box(joints[side + "Knee"], "RookLowerLeg", [0.19, 0.44, 0.20], [0, -0.21, 0], mat.black);
     box(joints[side + "Knee"], "RookShinGuard", [0.18, 0.35, 0.23], [0, -0.20, 0.055], mat.armor);
