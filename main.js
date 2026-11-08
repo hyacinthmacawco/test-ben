@@ -58,7 +58,7 @@ export function createHumanRig(options = {}) {
     // rotation points each upper arm straight down. This also aligns the
     // elbow's local Y axis with the character's lateral axis, making Y the
     // correct hinge axis for forearm motion in the front-facing Y/Z plane.
-    shoulder.rotation.z = -sign * (Math.PI / 2);
+    shoulder.rotation.z = -sign * THREE.MathUtils.degToRad(77);
     elbow.rotation.set(0, 0, 0);
   }
 
@@ -150,7 +150,7 @@ export function createHumanRig(options = {}) {
       ]
     },
     punch: {
-      duration: 0.88,
+      duration: 0.78,
       loop: true,
       frames: [
         { at: 0, pose: {} },
