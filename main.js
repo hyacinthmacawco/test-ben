@@ -369,7 +369,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x10151d);
 
 const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.set(3.4, 2.4, 5.5);
+camera.position.set(0.45, 2.65, 9.5);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.set(0, 1.05, 0);
@@ -411,6 +411,7 @@ const fixedPhysicsStep = 1 / 60;
 // Load Ben's character mesh and attach it to the articulated rig.
 let humanRig = null;
 let benCharacter = null;
+const supportingRigs = [];
 import("./ben.js").then(({ createBen }) => {
   benCharacter = createBen({ createHumanRig });
   humanRig = benCharacter.rig;
@@ -418,7 +419,7 @@ import("./ben.js").then(({ createBen }) => {
 
   characterBody = new CANNON.Body({
     mass: 65,
-    position: new CANNON.Vec3(0, characterColliderOffset, 0),
+    position: new CANNON.Vec3(-2.25, characterColliderOffset, 0),
     fixedRotation: true,
     linearDamping: 0.08,
     angularDamping: 1
@@ -455,6 +456,25 @@ import("./ben.js").then(({ createBen }) => {
   console.error("Could not load Ben character:", error);
 });
 
+// Companion models share the same articulated skeleton and animation update.
+// They are placed beside Ben so the three new model files are visible together.
+const companionLoads = [
+  { path: "./gwen.js", factory: "createGwen", x: -0.75, name: "Gwen" },
+  { path: "./kevin.js", factory: "createKevin", x: 0.75, name: "Kevin" },
+  { path: "./rook.js", factory: "createRook", x: 2.25, name: "Rook" }
+];
+for (const item of companionLoads) {
+  import(item.path).then(module => {
+    const character = module[item.factory]({ createHumanRig });
+    character.group.position.x = item.x;
+    scene.add(character.group);
+    supportingRigs.push(character.rig);
+    window[item.name.toLowerCase()] = character;
+  }).catch(error => {
+    console.error(`Could not load ${item.name} character:`, error);
+  });
+}
+
 const clock = new THREE.Clock();
 
 function resize() {
@@ -468,6 +488,7 @@ renderer.setAnimationLoop(() => {
   const delta = Math.min(clock.getDelta(), 0.05);
   const elapsed = clock.elapsedTime;
   if (humanRig) humanRig.updateWalk(elapsed);
+  for (const rig of supportingRigs) rig.updateWalk(elapsed);
   if (characterBody) {
     physicsWorld.step(fixedPhysicsStep, delta, 3);
     if (benCharacter) {
