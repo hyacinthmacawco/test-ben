@@ -45,14 +45,24 @@ export function createGwen({ createHumanRig }) {
     ctx.lineTo(222, 270); ctx.closePath(); ctx.fill();
   });
   const topFront = new THREE.MeshStandardMaterial({ color: 0xffffff, map: topTexture, roughness: 0.92 });
-  const hairTexture = (base, fill) => makeTexture((ctx, w, h) => {
-    ctx.fillStyle = base; ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = fill; ctx.fillRect(0, 0, w, h * 0.78);
+  const hairTexture = makeTexture((ctx, w, h) => {
+    ctx.fillStyle = "#c94e1d"; ctx.fillRect(0, 0, w, h);
+    for (let x = -80; x < w + 80; x += 42) {
+      ctx.strokeStyle = x % 3 ? "#e8752b" : "#a83b19";
+      ctx.lineWidth = 13; ctx.beginPath(); ctx.moveTo(x, 0); ctx.quadraticCurveTo(x + 25, h * 0.5, x - 8, h); ctx.stroke();
+    }
   });
-  const hairFrontMat = new THREE.MeshStandardMaterial({ map: hairTexture("#e5b3a4", "#d95b20"), roughness: 0.95 });
-  const hairBackMat = new THREE.MeshStandardMaterial({ map: hairTexture("#e5b3a4", "#c94e1d"), roughness: 0.95 });
-  const hairSideMat = new THREE.MeshStandardMaterial({ map: hairTexture("#e5b3a4", "#d95b20"), roughness: 0.95 });
-  const hairTopMat = new THREE.MeshStandardMaterial({ color: 0xd95b20, roughness: 0.95 });
+  const hairMat = new THREE.MeshStandardMaterial({ map: hairTexture, roughness: 0.95 });
+  const skinFaceMat = new THREE.MeshStandardMaterial({ color: 0xe5b3a4, roughness: 0.9 });
+  const plaidTexture = makeTexture((ctx, w, h) => {
+    ctx.fillStyle = "#244c83"; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = "#8fb7d5"; ctx.lineWidth = 5;
+    for (let x = 0; x <= w; x += 72) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
+    for (let y = 0; y <= h; y += 72) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+    ctx.strokeStyle = "#4775a8"; ctx.lineWidth = 2;
+    for (let x = 36; x <= w; x += 72) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
+  });
+  const plaidMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: plaidTexture, roughness: 0.92 });
   const box = (p, n, s, pos, m) => {
     const o = new THREE.Mesh(new THREE.BoxGeometry(...s), m);
     o.name = n; o.position.set(...pos); o.castShadow = true; o.receiveShadow = true; p.add(o); return o;
@@ -68,28 +78,13 @@ export function createGwen({ createHumanRig }) {
   rig.fitToTorso(torso);
   box(joints.spine, "GwenCollar", [0.22, 0.055, 0.30], [0, 0.475, 0], mat.shirtDark);
   box(joints.spine, "GwenChestEmblem", [0.19, 0.13, 0.012], [0, 0.25, 0.151], mat.shirtDark);
-  box(joints.hip, "GwenSkirtWaist", [0.40, 0.13, 0.29], [0, 0.16, 0], mat.shirtDark);
-  const skirt = box(joints.hip, "GwenBluePlaidSkirt", [0.54, 0.34, 0.34], [0, -0.045, 0], mat.skirt);
-  skirt.scale.x = 1.04;
-  // Fine horizontal and vertical plaid lines are geometry, not a noisy texture.
-  for (let y = -0.17; y <= 0.16; y += 0.085) {
-    box(joints.hip, "GwenSkirtPlaidH", [0.545, 0.009, 0.346], [0, -0.045 + y, 0], mat.skirtLine);
-  }
-  for (let x = -0.20; x <= 0.20; x += 0.10) {
-    box(joints.hip, "GwenSkirtPlaidV", [0.009, 0.342, 0.348], [x, -0.045, 0], mat.skirtLine);
-  }
+  // Plaid skirt pattern is applied directly to the upper-leg surfaces; no
+  // separate skirt or hip cuboid is added to the silhouette.
 
   // Orange bob cut: crown plus long side locks and a layered fringe.
-  box(joints.head, "GwenHead", [0.37, 0.42, 0.32], [0, 0.055, 0],
-    [hairSideMat, hairSideMat, hairTopMat, mat.skin, hairFrontMat, hairBackMat]);
-  box(joints.head, "GwenHairCap", [0.405, 0.19, 0.35], [0, 0.245, -0.005], mat.hair);
-  box(joints.head, "GwenFringe", [0.37, 0.105, 0.035], [0, 0.205, 0.17], mat.hairLight);
-  for (const side of ["left", "right"]) {
-    const sign = side === "left" ? -1 : 1;
-    const lock = box(joints.head, "GwenSideHair", [0.105, 0.48, 0.30], [sign * 0.18, -0.035, -0.005], mat.hair);
-    lock.rotation.z = -sign * 0.08;
-    box(joints.head, "GwenHairTip", [0.10, 0.12, 0.29], [sign * 0.18, -0.30, -0.005], mat.hairLight);
-  }
+  const headMesh = box(joints.head, "GwenHead", [0.37, 0.42, 0.32], [0, 0.055, 0],
+    [hairMat, hairMat, hairMat, skinFaceMat, skinFaceMat, hairMat]);
+  rig.fitHeadToTorso(torso, headMesh);
 
   // Spectacles are the only facial detail: dark blue rims, blue-tinted lenses,
   // bridge and short temples. No eyes, nose or mouth are modelled.
@@ -113,8 +108,9 @@ export function createGwen({ createHumanRig }) {
     box(elbow, "GwenForearm", [Math.abs(wrist.position.x) + 0.035, 0.14, 0.16],
       [wrist.position.x * 0.5, wrist.position.y * 0.5, 0], mat.skin);
     box(joints[side + "Wrist"], "GwenHand", [0.15, 0.14, 0.16], [sign * 0.075, 0, 0], mat.skin);
-    box(joints[side + "Thigh"], "GwenLeg", [0.19, 0.62, 0.20], [0, -0.30, 0], mat.skin);
+    box(joints[side + "Thigh"], "GwenPlaidSkirtLegTexture", [0.235, 0.53, 0.235], [0, -0.245, 0], plaidMat);
     box(joints[side + "Knee"], "GwenLowerLeg", [0.16, 0.44, 0.18], [0, -0.21, 0], mat.skin);
+    box(joints[side + "Knee"], "GwenPlaidBelowKnee", [0.235, 0.12, 0.235], [0, 0.015, 0], plaidMat);
     box(joints[side + "Ankle"], "GwenWhiteBoot", [0.20, 0.42, 0.25], [0, -0.17, 0.015], mat.boot);
     box(joints[side + "Ankle"], "GwenBootSole", [0.22, 0.045, 0.30], [0, -0.39, 0.07], mat.sole);
   }
