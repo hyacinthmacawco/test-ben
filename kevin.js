@@ -22,7 +22,7 @@ export function createKevin({ createHumanRig }) {
     const canvas = document.createElement("canvas");
     canvas.width = 384; canvas.height = 384;
     const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, 384, 384);
+    ctx.fillStyle = "#d0a18d"; ctx.fillRect(0, 0, 384, 384);
     ctx.fillStyle = "#17151b";
     if (front) {
       ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(384, 0); ctx.lineTo(384, 88);
@@ -35,7 +35,7 @@ export function createKevin({ createHumanRig }) {
     texture.anisotropy = 4;
     return texture;
   };
-  const frontHairMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: makeHairTexture(true), transparent: true, roughness: 0.95 });
+  const frontHairMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: makeHairTexture(true), transparent: false, roughness: 0.95 });
   const sideHairMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: makeHairTexture(false), roughness: 0.95 });
   const shirtCanvas = document.createElement("canvas");
   shirtCanvas.width = 512; shirtCanvas.height = 640;
