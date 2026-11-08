@@ -17,35 +17,8 @@ export function createKevin({ createHumanRig }) {
     pants: new THREE.MeshStandardMaterial({ color: 0x17233b, roughness: 0.94 }),
     belt: new THREE.MeshStandardMaterial({ color: 0x303b42, roughness: 0.82 })
   };
-  const hairCanvas = document.createElement("canvas");
-  hairCanvas.width = 512; hairCanvas.height = 512;
-  const hairCtx = hairCanvas.getContext("2d");
-  hairCtx.fillStyle = "#17151b"; hairCtx.fillRect(0,0,512,512);
-  for (let x=-80; x<600; x+=48) {
-    hairCtx.strokeStyle = x%3 ? "#302d38" : "#090a10";
-    hairCtx.lineWidth = 15; hairCtx.beginPath(); hairCtx.moveTo(x,0);
-    hairCtx.quadraticCurveTo(x+32,250,x-12,512); hairCtx.stroke();
-  }
-  const hairTexture = new THREE.CanvasTexture(hairCanvas);
-  hairTexture.colorSpace = THREE.SRGBColorSpace;
-  const hairMap = new THREE.MeshStandardMaterial({ map: hairTexture, roughness: 0.95 });
-  const faceTextureCanvas = document.createElement("canvas");
-  faceTextureCanvas.width = 512; faceTextureCanvas.height = 512;
-  const faceCtx = faceTextureCanvas.getContext("2d");
-  faceCtx.fillStyle = "#d0a18d"; faceCtx.fillRect(0, 0, 512, 512);
-  // Black swept fringe only occupies the upper forehead, leaving the face clear.
-  faceCtx.fillStyle = "#17151b";
-  faceCtx.beginPath();
-  faceCtx.moveTo(0, 0); faceCtx.lineTo(512, 0); faceCtx.lineTo(512, 102);
-  faceCtx.lineTo(430, 120); faceCtx.lineTo(360, 84); faceCtx.lineTo(290, 132);
-  faceCtx.lineTo(220, 90); faceCtx.lineTo(150, 125); faceCtx.lineTo(82, 88);
-  faceCtx.lineTo(0, 112); faceCtx.closePath(); faceCtx.fill();
-  const faceTexture = new THREE.CanvasTexture(faceTextureCanvas);
-  faceTexture.colorSpace = THREE.SRGBColorSpace;
-  const faceFrontMaterial = new THREE.MeshStandardMaterial({
-    color: 0xffffff, map: faceTexture, roughness: 0.92
-  });
-  const faceMaterial = new THREE.MeshStandardMaterial({ color: 0xd0a18d, roughness: 0.92 });
+  const hairMap = mat.hair;
+  const faceMaterial = mat.skin;
   const shirtCanvas = document.createElement("canvas");
   shirtCanvas.width = 512; shirtCanvas.height = 640;
   const shirtCtx = shirtCanvas.getContext("2d");
@@ -71,7 +44,7 @@ export function createKevin({ createHumanRig }) {
   box(joints.spine, "KevinNeckBand", [0.30, 0.11, 0.30], [0, 0.49, 0], mat.sleeveDark);
   // Hair is a surface texture on the scalp/head mesh, not separate blocks.
   const headMesh = box(joints.head, "KevinHead", [0.37, 0.43, 0.32], [0, 0.055, 0],
-    [hairMap, hairMap, hairMap, faceMaterial, faceFrontMaterial, hairMap]);
+    [hairMap, hairMap, hairMap, faceMaterial, faceMaterial, hairMap]);
   rig.fitHeadToTorso(torso, headMesh);
 
   for (const side of ["left", "right"]) {
