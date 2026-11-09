@@ -43,7 +43,7 @@ export function createRook({ createHumanRig }) {
   };
 
   // Broad black undersuit with blue chest and shoulder armour.
-  const torso = box(joints.spine, "RookBlackUndersuit", [0.53, 0.75, 0.32], [0, 0.15, 0], mat.black);
+  const torso = box(joints.spine, "RookBlackUndersuit", [0.53, 0.98, 0.32], [0, 0.035, 0], mat.black);
   rig.fitToTorso(torso);
   box(joints.spine, "RookBlueChestPlate", [0.47, 0.43, 0.075], [0, 0.24, 0.19], mat.armor);
   box(joints.spine, "RookChestInset", [0.28, 0.20, 0.025], [0, 0.12, 0.235], mat.trim);
