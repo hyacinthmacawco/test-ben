@@ -132,7 +132,12 @@ export function createGwen({ createHumanRig }) {
     box(joints[side + "Thigh"], "GwenPlaidSkirtLegTexture", [0.235, 0.53, 0.235], [0, -0.245, 0], plaidMat);
     box(joints[side + "Knee"], "GwenLowerLegWithSockTexture", [0.20, 0.44, 0.22], [0, -0.21, 0], sockLegMat);
     box(joints[side + "Knee"], "GwenPlaidBelowKnee", [0.235, 0.12, 0.235], [0, 0.015, 0], plaidMat);
-    box(joints[side + "Ankle"], "GwenBootSole", [0.22, 0.045, 0.30], [0, -0.39, 0.07], mat.sole);
+    // Boot upper overlaps the socked lower leg at the ankle to eliminate
+    // the exposed skin/gap; the sole is attached directly beneath the boot.
+    box(joints[side + "Ankle"], "GwenWhiteBoot", [0.215, 0.27, 0.31],
+      [0, -0.105, 0.07], mat.boot);
+    box(joints[side + "Ankle"], "GwenBootSole", [0.225, 0.045, 0.32],
+      [0, -0.245, 0.075], mat.sole);
   }
   return { group, rig, joints };
 }
