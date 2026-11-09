@@ -199,7 +199,7 @@ export function createHumanRig(options = {}) {
         const sign = side === "left" ? -1 : 1;
         joints[side + "Shoulder"].position.set(sign * halfWidth * 0.78, 0, 0);
         const legWorld = spine.localToWorld(new THREE.Vector3(
-          sign * halfWidth * 0.24, localMinY + 0.025, centerZ
+          sign * halfWidth * 0.24, localMinY - 0.025, centerZ
         ));
         hip.worldToLocal(legWorld);
         joints[side + "Thigh"].position.copy(legWorld);
