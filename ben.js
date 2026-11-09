@@ -156,14 +156,12 @@ export function createBen({ createHumanRig }) {
 
   // Shirt extends down over the pelvis. The waistband is parented to the
   // spine, not the independently rotating hip, so the two cannot pull apart.
-  const torso = box(joints.spine, "BenShirt", [0.45, 0.72, 0.28],
-    [0, 0.15, 0], [
+  const torso = box(joints.spine, "BenShirt", [0.45, 0.96, 0.28],
+    [0, 0.025, 0], [
       mat.black, mat.black, mat.black, mat.black, mat.shirt, mat.black
     ]);
   rig.fitToTorso(torso);
 
-  box(joints.spine, "BenTrouserWaist", [0.38, 0.34, 0.255],
-    [0, -0.10, 0], mat.pants);
 
   // No neck mesh: the head remains attached directly to the neck bone.
   // Hair is painted onto the cuboid head's faces.
