@@ -101,7 +101,6 @@ export function createGwen({ createHumanRig }) {
     [mat.shirt, mat.shirt, mat.shirt, mat.shirt, topFront, mat.shirt]);
   rig.fitToTorso(torso);
   box(joints.spine, "GwenCollar", [0.22, 0.055, 0.30], [0, 0.475, 0], mat.shirtDark);
-  box(joints.spine, "GwenChestEmblem", [0.19, 0.13, 0.012], [0, 0.25, 0.151], mat.shirtDark);
   // Plaid skirt pattern is applied directly to the upper-leg surfaces; no
   // separate skirt or hip cuboid is added to the silhouette.
 
