@@ -56,7 +56,7 @@ export function createKevin({ createHumanRig }) {
     o.name = n; o.position.set(...pos); o.castShadow = true; o.receiveShadow = true; p.add(o); return o;
   };
 
-  const torso = box(joints.spine, "KevinBlackShirt", [0.49, 0.73, 0.30], [0, 0.15, 0],
+  const torso = box(joints.spine, "KevinBlackShirt", [0.49, 0.96, 0.30], [0, 0.035, 0],
     [mat.shirt, mat.shirt, mat.shirt, mat.shirt, shirtFront, mat.shirt]);
   rig.fitToTorso(torso);
   box(joints.spine, "KevinNeckBand", [0.30, 0.11, 0.30], [0, 0.49, 0], mat.sleeveDark);
