@@ -15,7 +15,7 @@ export function createGwen({ createHumanRig }) {
     skirtLine: new THREE.MeshStandardMaterial({ color: 0x91b7d3, roughness: 0.9 }),
     hair: new THREE.MeshStandardMaterial({ color: 0xd95b20, roughness: 0.95 }),
     hairLight: new THREE.MeshStandardMaterial({ color: 0xf0782b, roughness: 0.95 }),
-    boot: new THREE.MeshStandardMaterial({ color: 0xdce7e9, roughness: 0.9 }),
+    boot: new THREE.MeshStandardMaterial({ color: 0x31577a, roughness: 0.9 }),
     sole: new THREE.MeshStandardMaterial({ color: 0x31577a, roughness: 0.9 }),
     frame: new THREE.MeshStandardMaterial({ color: 0x173c67, roughness: 0.55, metalness: 0.12 }),
     lens: new THREE.MeshStandardMaterial({ color: 0x4e9db9, roughness: 0.35, metalness: 0.15 })
@@ -128,17 +128,13 @@ export function createGwen({ createHumanRig }) {
     box(elbow, "GwenForearm", [Math.abs(wrist.position.x) + 0.035, 0.14, 0.16],
       [wrist.position.x * 0.5, wrist.position.y * 0.5, 0], mat.skin);
     box(joints[side + "Wrist"], "GwenHand", [0.15, 0.14, 0.16], [sign * 0.075, 0, 0], mat.skin);
-    box(joints[side + "Thigh"], "GwenPlaidSkirtLegTexture", [0.235, 0.53, 0.235], [0, -0.245, 0], plaidMat);
-    // Extend the socked lower-leg mesh past the ankle pivot so it reaches
-    // the existing boot/foot geometry without adding a separate white boot.
-    box(joints[side + "Knee"], "GwenLowerLegWithSockTexture", [0.20, 0.78, 0.22], [0, -0.38, 0], sockLegMat);
-    box(joints[side + "Knee"], "GwenPlaidBelowKnee", [0.235, 0.12, 0.235], [0, 0.015, 0], plaidMat);
-    // Complete the boot around the foot: the lower-leg mesh now reaches
-    // into the boot shaft, while this toe/foot volume projects forward.
-    box(joints[side + "Ankle"], "GwenWhiteBootFoot", [0.205, 0.15, 0.31],
-      [0, -0.065, 0.085], mat.boot);
-    box(joints[side + "Ankle"], "GwenBootSole", [0.21, 0.045, 0.315],
-      [0, -0.145, 0.085], mat.sole);
+    // Match Kevin's leg proportions and pivot-relative placement exactly,
+    // while retaining Gwen's plaid and sock surface materials.
+    box(joints[side + "Thigh"], "GwenPlaidUpperLeg", [0.21, 0.62, 0.22], [0, -0.30, 0], plaidMat);
+    box(joints[side + "Knee"], "GwenSockedLowerLeg", [0.18, 0.44, 0.20], [0, -0.21, 0], sockLegMat);
+    // Gwen's boots are blue. Use Kevin's boot dimensions and ankle placement.
+    box(joints[side + "Ankle"], "GwenBlueBoot", [0.21, 0.16, 0.31], [0, -0.08, 0.07], mat.boot);
+    box(joints[side + "Ankle"], "GwenBlueBootSole", [0.215, 0.045, 0.315], [0, -0.145, 0.075], mat.sole);
   }
   return { group, rig, joints };
 }
