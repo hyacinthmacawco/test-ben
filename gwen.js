@@ -134,8 +134,12 @@ export function createGwen({ createHumanRig }) {
     // the existing boot/foot geometry without adding a separate white boot.
     box(joints[side + "Knee"], "GwenLowerLegWithSockTexture", [0.20, 0.78, 0.22], [0, -0.38, 0], sockLegMat);
     box(joints[side + "Knee"], "GwenPlaidBelowKnee", [0.235, 0.12, 0.235], [0, 0.015, 0], plaidMat);
-    box(joints[side + "Ankle"], "GwenBootSole", [0.225, 0.045, 0.32],
-      [0, -0.245, 0.075], mat.sole);
+    // Complete the boot around the foot: the lower-leg mesh now reaches
+    // into the boot shaft, while this toe/foot volume projects forward.
+    box(joints[side + "Ankle"], "GwenWhiteBootFoot", [0.205, 0.15, 0.31],
+      [0, -0.065, 0.085], mat.boot);
+    box(joints[side + "Ankle"], "GwenBootSole", [0.21, 0.045, 0.315],
+      [0, -0.145, 0.085], mat.sole);
   }
   return { group, rig, joints };
 }
