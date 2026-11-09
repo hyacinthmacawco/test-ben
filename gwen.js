@@ -97,7 +97,7 @@ export function createGwen({ createHumanRig }) {
   };
 
   // Shirt graphic is painted into the front-face texture.
-  const torso = box(joints.spine, "GwenBlueTop", [0.47, 0.65, 0.29], [0, 0.16, 0],
+  const torso = box(joints.spine, "GwenBlueTop", [0.47, 0.88, 0.29], [0, 0.045, 0],
     [mat.shirt, mat.shirt, mat.shirt, mat.shirt, topFront, mat.shirt]);
   rig.fitToTorso(torso);
   box(joints.spine, "GwenCollar", [0.22, 0.055, 0.30], [0, 0.475, 0], mat.shirtDark);
