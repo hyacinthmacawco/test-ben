@@ -132,7 +132,7 @@ export function createGwen({ createHumanRig }) {
     box(joints[side + "Thigh"], "GwenPlaidSkirtLegTexture", [0.235, 0.53, 0.235], [0, -0.245, 0], plaidMat);
     // Extend the socked lower-leg mesh past the ankle pivot so it reaches
     // the existing boot/foot geometry without adding a separate white boot.
-    box(joints[side + "Knee"], "GwenLowerLegWithSockTexture", [0.20, 0.62, 0.22], [0, -0.30, 0], sockLegMat);
+    box(joints[side + "Knee"], "GwenLowerLegWithSockTexture", [0.20, 0.78, 0.22], [0, -0.38, 0], sockLegMat);
     box(joints[side + "Knee"], "GwenPlaidBelowKnee", [0.235, 0.12, 0.235], [0, 0.015, 0], plaidMat);
     box(joints[side + "Ankle"], "GwenBootSole", [0.225, 0.045, 0.32],
       [0, -0.245, 0.075], mat.sole);
