@@ -84,16 +84,14 @@ export function createBen({ createHumanRig }) {
     ctx.fillRect(0, 0, w, h);
     // Back hair covers nearly the entire rear of the head.
     ctx.fillStyle = "#38231e";
-    ctx.fillRect(0, 0, w, 326);
-    ctx.fillRect(0, 292, w, 34);
+    ctx.fillRect(0, 0, w, h);
   });
 
   const hairSide = makeTexture(256, 384, (ctx, w, h) => {
     ctx.fillStyle = "#c98d78";
     ctx.fillRect(0, 0, w, h);
     ctx.fillStyle = "#38231e";
-    ctx.fillRect(0, 0, w, 145);
-    ctx.fillRect(0, 110, w, 90);
+    ctx.fillRect(0, 0, w, h);
   });
 
   const hairTop = makeTexture(256, 256, (ctx, w, h) => {
